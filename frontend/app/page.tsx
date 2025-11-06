@@ -1,13 +1,14 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { InteractiveReader } from "@/components/interactive-reader";
+import { Language } from "@/lib/types";
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center p-8">
-      <Card>
-        <CardContent className="flex items-center justify-center p-6">
-          <h1 className="text-2xl font-semibold">Hello World</h1>
-        </CardContent>
-      </Card>
-    </div>
-  );
+    return (
+        <div className="flex min-h-screen items-center justify-center p-8">
+            <InteractiveReader
+                text="你好世界！这是一个交互式阅读器的示例文本。"
+                language={Language.Chinese}
+                className="max-w-2xl text-2xl"
+            />
+        </div>
+    );
 }

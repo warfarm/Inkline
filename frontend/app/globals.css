@@ -76,6 +76,22 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+
+  /* Viewport-based text units */
+  --text-vw-xs: clamp(0.75rem, 1vw, 1.5rem);
+  --text-vw-sm: clamp(0.875rem, 1.5vw, 2rem);
+  --text-vw-base: clamp(1rem, 2vw, 2.5rem);
+  --text-vw-lg: clamp(1.125rem, 2.5vw, 3rem);
+  --text-vw-xl: clamp(1.25rem, 3vw, 4rem);
+  --text-vw-2xl: clamp(1.5rem, 4vw, 5rem);
+  --text-vw-3xl: clamp(1.875rem, 5vw, 6rem);
+  --text-vh-xs: clamp(0.75rem, 1vh, 1.5rem);
+  --text-vh-sm: clamp(0.875rem, 1.5vh, 2rem);
+  --text-vh-base: clamp(1rem, 2vh, 2.5rem);
+  --text-vh-lg: clamp(1.125rem, 2.5vh, 3rem);
+  --text-vh-xl: clamp(1.25rem, 3vh, 4rem);
+  --text-vh-2xl: clamp(1.5rem, 4vh, 5rem);
+  --text-vh-3xl: clamp(1.875rem, 5vh, 6rem);
 }
 
 .dark {
