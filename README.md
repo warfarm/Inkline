@@ -1,8 +1,8 @@
 # Inkline
 
 ## Getting Started
-First
-`npm install`
-Then
-`npm run dev`
-Have fun (or cry)
+First  
+`npm install`  
+Then  
+`npm run dev`  
+Have fun (or cry)  
