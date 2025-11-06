@@ -4,5 +4,6 @@
 ### First  
 `npm install`    
 ### Then  
-`npm run dev`      
-Have fun (or cry)  
+`npm run dev`  
+  
+Have fun (or cry)
