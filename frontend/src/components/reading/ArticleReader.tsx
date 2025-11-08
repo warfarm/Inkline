@@ -18,6 +18,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const { user } = useAuth();
   const startTimeRef = useRef<number>(Date.now());
   const contentRef = useRef<HTMLDivElement>(null);
+  const lastWordClickRef = useRef<{ word: string; timestamp: number } | null>(null);
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
     position: { x: number; y: number };
@@ -61,10 +62,22 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       const selectedText = selection.toString().trim();
       if (!selectedText || selectedText.split(/\s+/).length > 10) return;
 
+      // Check if this selection is from a recent word click (within 100ms)
+      const now = Date.now();
+      if (lastWordClickRef.current &&
+          lastWordClickRef.current.word === selectedText &&
+          now - lastWordClickRef.current.timestamp < 100) {
+        return; // Ignore this selection - it's from a word click
+      }
+
       // Only trigger phrase selection if it spans multiple characters
       if (selectedText.length > 1) {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
+
+        // Close word popup when opening phrase popup (mutual exclusion)
+        setSelectedWord(null);
+        setDictionaryResult(null);
 
         setSelectedPhrase({
           phrase: selectedText,
@@ -176,6 +189,16 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   };
 
   const handleWordClick = (word: string, event: React.MouseEvent) => {
+    // Track this click to prevent duplicate popup from text selection handler
+    lastWordClickRef.current = {
+      word,
+      timestamp: Date.now(),
+    };
+
+    // Close phrase popup when opening word popup (mutual exclusion)
+    setSelectedPhrase(null);
+    setPhraseResult(null);
+
     const rect = (event.target as HTMLElement).getBoundingClientRect();
     setSelectedWord({
       word,

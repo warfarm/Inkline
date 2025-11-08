@@ -76,6 +76,7 @@ export function PhrasePopup({
           zIndex: 10001,
           isolation: 'isolate'
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {loading ? (
           <div className="text-center">
