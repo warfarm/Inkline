@@ -1,0 +1,1492 @@
+# Project Content
+Language Learning Platform MVP - Complete Development Brief
+Project Overview
+Build a web-based language learning platform focused on reading comprehension for English speakers learning Chinese (Simplified) and Japanese. The platform uses interactive articles with hover definitions, word banking, and teacher classroom management features.
+Technical Stack
+Frontend
+
+Framework: React 18 + Vite + TypeScript
+UI Library: shadcn/ui (with Radix UI primitives)
+Styling: Tailwind CSS
+State Management: React Context API + hooks
+Routing: React Router v6
+HTTP Client: Fetch API (built-in)
+
+Backend & Infrastructure
+
+Backend: Supabase
+
+Authentication (Google OAuth)
+PostgreSQL database
+Row Level Security (RLS)
+Real-time subscriptions
+
+
+Deployment: Vercel
+Environment: Node.js 18+
+
+Key Libraries
+
+Word Segmentation:
+
+Japanese: tiny-segmenter (JavaScript, lightweight)
+Chinese: nodejieba (or client-side alternative if needed)
+
+
+Japanese Furigana: kuroshiro + kuroshiro-analyzer-kuromoji
+Dictionary APIs:
+
+Japanese: Jisho.org API (free, no key)
+Chinese: CC-CEDICT data (parsed locally or use wrapper)
+
+
+
+Database Schema (Supabase PostgreSQL)
+sql-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- User profiles (extends Supabase auth.users)
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users PRIMARY KEY,
+  role TEXT NOT NULL CHECK (role IN ('student', 'teacher')),
+  display_name TEXT NOT NULL,
+  native_language TEXT DEFAULT 'en',
+  target_language TEXT CHECK (target_language IN ('zh', 'ja')),
+  current_level TEXT CHECK (current_level IN ('beginner', 'intermediate', 'advanced')),
+  interests JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Classes (for teachers)
+CREATE TABLE classes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  teacher_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  join_code TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  archived BOOLEAN DEFAULT FALSE
+);
+
+-- Class enrollments (student-class relationship)
+CREATE TABLE class_enrollments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(class_id, student_id)
+);
+
+-- Articles (pre-generated content)
+CREATE TABLE articles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  language TEXT NOT NULL CHECK (language IN ('zh', 'ja')),
+  difficulty_level TEXT NOT NULL CHECK (difficulty_level IN ('beginner', 'intermediate', 'advanced')),
+  topic TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  segmented_content JSONB NOT NULL, -- Pre-segmented words with boundaries
+  word_count INTEGER NOT NULL,
+  target_words JSONB DEFAULT '[]'::jsonb,
+  grammar_points JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Word bank (user's saved vocabulary)
+CREATE TABLE word_bank (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  word TEXT NOT NULL,
+  language TEXT NOT NULL,
+  definition TEXT NOT NULL,
+  reading TEXT, -- Pinyin for Chinese, Hiragana for Japanese
+  example_sentence TEXT,
+  status TEXT DEFAULT 'learning' CHECK (status IN ('learning', 'mastered')),
+  times_reviewed INTEGER DEFAULT 0,
+  first_seen_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_reviewed_at TIMESTAMP WITH TIME ZONE,
+  UNIQUE(user_id, word, language)
+);
+
+-- Reading history (track article completions)
+CREATE TABLE reading_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  article_id UUID REFERENCES articles(id) ON DELETE CASCADE,
+  completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  time_spent_seconds INTEGER,
+  words_saved_count INTEGER DEFAULT 0,
+  liked BOOLEAN -- For topic preference (more/less of this)
+);
+
+-- Kanji familiarity (for auto-hide furigana)
+CREATE TABLE kanji_familiarity (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  kanji_character TEXT NOT NULL,
+  times_encountered INTEGER DEFAULT 1,
+  times_clicked INTEGER DEFAULT 0,
+  show_furigana BOOLEAN DEFAULT TRUE,
+  last_seen_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, kanji_character)
+);
+
+-- Word interactions (analytics for future improvements)
+CREATE TABLE word_interactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  article_id UUID REFERENCES articles(id) ON DELETE CASCADE,
+  word TEXT NOT NULL,
+  interaction_type TEXT CHECK (interaction_type IN ('click', 'save', 'phrase_highlight')),
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_profiles_target_language ON profiles(target_language);
+CREATE INDEX idx_articles_language_level ON articles(language, difficulty_level);
+CREATE INDEX idx_articles_topic ON articles(topic);
+CREATE INDEX idx_word_bank_user ON word_bank(user_id);
+CREATE INDEX idx_reading_history_user ON reading_history(user_id);
+CREATE INDEX idx_class_enrollments_student ON class_enrollments(student_id);
+CREATE INDEX idx_class_enrollments_class ON class_enrollments(class_id);
+Row Level Security (RLS) Policies
+sql-- Enable RLS on all tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE class_enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE word_bank ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reading_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kanji_familiarity ENABLE ROW LEVEL SECURITY;
+ALTER TABLE word_interactions ENABLE ROW LEVEL SECURITY;
+
+-- Profiles: Users can read/update their own profile
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Classes: Teachers can manage their classes, students can view enrolled classes
+CREATE POLICY "Teachers can manage own classes" ON classes FOR ALL USING (auth.uid() = teacher_id);
+CREATE POLICY "Students can view enrolled classes" ON classes FOR SELECT 
+  USING (EXISTS (SELECT 1 FROM class_enrollments WHERE class_id = classes.id AND student_id = auth.uid()));
+
+-- Articles: Everyone can read articles
+CREATE POLICY "Anyone can read articles" ON articles FOR SELECT USING (true);
+
+-- Word bank: Users can manage their own word bank
+CREATE POLICY "Users can manage own word bank" ON word_bank FOR ALL USING (auth.uid() = user_id);
+
+-- Reading history: Users can manage their own history
+CREATE POLICY "Users can manage own reading history" ON reading_history FOR ALL USING (auth.uid() = user_id);
+
+-- Kanji familiarity: Users can manage their own data
+CREATE POLICY "Users can manage own kanji familiarity" ON kanji_familiarity FOR ALL USING (auth.uid() = user_id);
+
+-- Class enrollments: Teachers can view/manage, students can view own
+CREATE POLICY "Teachers can manage class enrollments" ON class_enrollments FOR ALL 
+  USING (EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND teacher_id = auth.uid()));
+CREATE POLICY "Students can view own enrollments" ON class_enrollments FOR SELECT USING (auth.uid() = student_id);
+```
+
+## Project Structure
+```
+language-learning-mvp/
+├── src/
+│   ├── components/
+│   │   ├── ui/              # shadcn/ui components
+│   │   ├── auth/
+│   │   │   ├── LoginForm.tsx
+│   │   │   └── ProtectedRoute.tsx
+│   │   ├── onboarding/
+│   │   │   ├── InterestSurvey.tsx
+│   │   │   └── LevelSelection.tsx
+│   │   ├── reading/
+│   │   │   ├── ArticleReader.tsx
+│   │   │   ├── WordPopup.tsx
+│   │   │   ├── PhrasePopup.tsx
+│   │   │   └── FuriganaText.tsx
+│   │   ├── wordbank/
+│   │   │   ├── WordBankList.tsx
+│   │   │   └── WordCard.tsx
+│   │   ├── dashboard/
+│   │   │   ├── StudentDashboard.tsx
+│   │   │   ├── ProgressChart.tsx
+│   │   │   └── ArticleGrid.tsx
+│   │   ├── teacher/
+│   │   │   ├── TeacherDashboard.tsx
+│   │   │   ├── ClassOverview.tsx
+│   │   │   ├── StudentList.tsx
+│   │   │   └── StudentDetailView.tsx
+│   │   └── layout/
+│   │       ├── Navigation.tsx
+│   │       └── Layout.tsx
+│   ├── lib/
+│   │   ├── supabase.ts       # Supabase client
+│   │   ├── auth.ts           # Auth helpers
+│   │   ├── dictionaries/
+│   │   │   ├── jisho.ts      # Jisho API integration
+│   │   │   └── cedict.ts     # CC-CEDICT integration
+│   │   ├── segmentation/
+│   │   │   ├── japanese.ts   # TinySegmenter wrapper
+│   │   │   └── chinese.ts    # Jieba wrapper
+│   │   └── utils.ts          # Utility functions
+│   ├── hooks/
+│   │   ├── useAuth.ts
+│   │   ├── useArticles.ts
+│   │   ├── useWordBank.ts
+│   │   └── useProgress.ts
+│   ├── contexts/
+│   │   └── AuthContext.tsx
+│   ├── pages/
+│   │   ├── Login.tsx
+│   │   ├── Onboarding.tsx
+│   │   ├── Home.tsx
+│   │   ├── ArticleView.tsx
+│   │   ├── WordBank.tsx
+│   │   ├── Progress.tsx
+│   │   └── TeacherDashboard.tsx
+│   ├── types/
+│   │   └── index.ts          # TypeScript types
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── public/
+├── supabase/
+│   ├── migrations/
+│   │   └── 001_initial_schema.sql
+│   └── seed.sql              # Sample data (will be added manually)
+├── .env.local
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── tailwind.config.js
+```
+
+## Feature Specifications
+
+### 1. Authentication & User Roles
+
+**Requirements:**
+- Google OAuth via Supabase Auth
+- Two roles: `student` and `teacher`
+- Role selection during signup
+- Protected routes based on role
+
+**Implementation:**
+- Use Supabase `auth.signInWithOAuth({ provider: 'google' })`
+- After first login, show role selection modal
+- Store role in `profiles` table
+- Create `AuthContext` to manage auth state globally
+- Create `ProtectedRoute` component that checks auth + role
+
+### 2. Onboarding Flow (Students Only)
+
+**Steps:**
+1. **Interest Survey:**
+   - Display 5-10 broad topics (checkboxes):
+     - Daily Life
+     - Technology
+     - Culture & Travel
+     - Food & Cooking
+     - Entertainment & Hobbies
+     - Business & Work
+     - Science & Nature
+     - Sports & Fitness
+     - Arts & Literature
+     - Current Events
+   - Free text input for custom interests (optional)
+   - "Next" button
+
+2. **Level Selection:**
+   - Three options with descriptions:
+     - **Beginner:** "I know basic phrases and can read simple sentences"
+     - **Intermediate:** "I can read short articles with some help"
+     - **Advanced:** "I'm comfortable reading most content with occasional lookups"
+   - Target language selection (Chinese or Japanese)
+   - "Complete Setup" button
+
+3. **Class Join (Optional):**
+   - "Do you have a class code?" prompt
+   - Text input for join code
+   - "Skip" or "Join Class" buttons
+
+**Save to Database:**
+- Update `profiles` table with interests, level, target_language
+- If class code provided, create entry in `class_enrollments`
+
+### 3. Article Reading Interface
+
+**Layout:**
+```
+┌─────────────────────────────────────┐
+│  [← Back]  Title        [Settings]  │
+├─────────────────────────────────────┤
+│                                     │
+│  Article content with clickable     │
+│  words and phrases.                 │
+│                                     │
+│  [Word popup appears below word]    │
+│                                     │
+└─────────────────────────────────────┘
+│  Progress: 45%  |  Time: 5:32      │
+│  [Save to Word Bank] [More/Less]   │
+└─────────────────────────────────────┘
+Features:
+A. Word Clicking:
+
+Each word wrapped in <span class="word-clickable">
+On click:
+
+Fetch definition from dictionary API
+Show popup below word with:
+
+Word in target language
+Reading (Pinyin/Hiragana)
+English definition
+Example sentence
+[Save to Word Bank] button
+
+
+Track interaction in word_interactions table
+
+
+
+B. Phrase Highlighting:
+
+User can click-drag to select multiple words
+On selection end:
+
+Show popup with:
+
+Selected phrase
+Grammar structure explanation (from article's grammar_points data)
+Example usage
+[Save] button (saves entire phrase to word bank)
+
+
+
+
+
+C. Furigana Display (Japanese Only):
+
+Use <ruby> tags for kanji with furigana
+Display logic:
+
+Check kanji_familiarity table for each kanji
+If show_furigana = true OR times_encountered < 3, show furigana
+Otherwise, hide furigana
+
+
+Global toggle in settings: "Always show furigana"
+Per-article quick toggle button in header
+
+D. Article Progress:
+
+Track scroll position and time spent
+On completion (scroll to 80%+ or click "Mark Complete"):
+
+Save to reading_history
+Show feedback modal: "Did you like this topic?" [More] [Less] [Neutral]
+Update user interest preferences
+
+
+
+Implementation Notes:
+
+Use TinySegmenter for Japanese, nodejieba for Chinese during article pre-processing
+Store segmented content in articles.segmented_content as:
+
+json  {
+    "words": [
+      {"text": "私", "start": 0, "end": 1},
+      {"text": "は", "start": 1, "end": 2},
+      {"text": "学生", "start": 2, "end": 4}
+    ]
+  }
+
+For dictionary lookups:
+
+Japanese: fetch('https://jisho.org/api/v1/search/words?keyword=WORD')
+Chinese: Use pre-loaded CC-CEDICT data or API wrapper
+
+
+
+4. Word Bank
+Features:
+
+List view with search/filter
+Columns: Word | Reading | Definition | Status | Actions
+Filter by:
+
+Status (Learning / Mastered)
+Language
+
+
+Sort by: Date added, Alphabetical
+Actions per word:
+
+Mark as Mastered/Learning toggle
+Delete
+View example sentence
+
+
+
+Custom Practice Sets (Simplified for MVP):
+
+"Create Practice Set" button
+Select random 10-20 words from word bank
+Display as flashcards (click to flip definition)
+Track review count
+
+5. Progress Dashboard (Student)
+Metrics to Display:
+
+Overview Cards:
+
+Articles Completed (total count + this week)
+Words Saved (total + this week)
+Time Spent Reading (total + this week)
+Current Level
+
+
+Activity Chart:
+
+Line/bar chart showing articles read per day (last 30 days)
+Use recharts or similar library
+
+
+Recent Articles:
+
+List of last 5 articles read with completion date
+
+
+Word Bank Summary:
+
+Learning: X words
+Mastered: Y words
+Quick link to Word Bank page
+
+
+
+6. Teacher Dashboard
+A. Class Management:
+
+Create new class (name input → generate random 6-character join code)
+List of all classes with student counts
+Archive old classes
+
+B. Class Overview:
+
+Select a class from dropdown
+Display:
+
+Engagement Metrics:
+
+Average articles completed per student
+Active students (logged in within 7 days) vs. total
+Total words saved (class-wide)
+
+
+Weekly Activity Chart:
+
+Bar chart: articles read per day for entire class
+
+
+Topic Distribution:
+
+Pie/bar chart: which topics students are reading most
+
+
+
+
+
+C. Student List:
+
+Table with columns:
+
+Name | Articles Completed | Words Saved | Last Active | Status (Active/Inactive)
+
+
+Click student name → opens Student Detail View
+
+D. Student Detail View:
+
+Student name and profile info
+Progress Tab:
+
+Articles completed (list with dates and titles)
+Word bank size and breakdown (learning vs. mastered)
+Time spent reading (total + per article)
+Activity timeline (chronological feed of actions)
+
+
+Export Button:
+
+Generate CSV with student data
+Format: Name, Email, Articles Completed, Words Saved, Last Active, Level
+
+
+
+E. Struggling Students Alert:
+
+Highlight students who:
+
+Haven't logged in for 7+ days (red badge)
+Have completed 0 articles in past 7 days (yellow badge)
+
+
+
+7. Article Discovery & Recommendation
+Browse Page:
+
+Filter sidebar:
+
+Language (Chinese / Japanese)
+Difficulty Level (Beginner / Intermediate / Advanced)
+Topic (checkboxes for all topics)
+
+
+Article cards with:
+
+Title
+Topic tag
+Difficulty badge
+Word count
+[Start Reading] button
+
+
+
+Simple Recommendation Algorithm:
+
+Query articles based on:
+
+User's target_language and current_level
+User's interests (topics they selected + topics they've liked)
+
+
+Sort by:
+
+Priority: Articles in liked topics
+De-prioritize: Articles in topics user clicked "Less"
+Random selection within filtered set
+
+
+
+Post-Article Feedback:
+
+After completing an article, show modal:
+
+"How did you like this topic?"
+[More 👍] [Less 👎] [Neutral]
+Update user interest weights in database
+
+
+
+Implementation Priorities
+Week 1: Setup & Core Infrastructure
+
+Initialize Vite + React + TypeScript project
+Set up Tailwind CSS and shadcn/ui
+Configure Supabase project:
+
+Create database with schema
+Enable Google OAuth
+Set up RLS policies
+
+
+Build authentication flow:
+
+Login page with Google OAuth
+AuthContext and auth hooks
+Protected routes
+
+
+Create basic layout and navigation
+
+Week 2: Reading Experience
+
+Build Article Reader component:
+
+Render article content
+Implement word segmentation display
+Word click handler with popup
+Phrase selection with popup
+
+
+Integrate dictionary APIs:
+
+Jisho API for Japanese
+CC-CEDICT for Chinese
+
+
+Build WordPopup and PhrasePopup components
+Implement "Save to Word Bank" functionality
+Track reading progress and save to database
+
+Week 3: Student Features
+
+Build onboarding flow:
+
+Interest survey
+Level selection
+Class join (optional)
+
+
+Create student dashboard:
+
+Progress metrics
+Activity charts
+Recent articles
+
+
+Build Word Bank page:
+
+List view with filters
+Status toggle
+Basic flashcard practice
+
+
+Implement article discovery/browse page
+Add post-article feedback (More/Less topic)
+
+Week 4: Teacher Features & Polish
+
+Build teacher dashboard:
+
+Class creation and management
+Class overview metrics
+Student list
+
+
+Create Student Detail View
+Implement CSV export
+Add struggling students alerts
+Japanese furigana logic:
+
+Kanji familiarity tracking
+Auto-hide after 3 encounters
+User toggle
+
+
+Bug fixes and testing
+Deploy to Vercel
+
+Code Style & Best Practices
+TypeScript:
+
+Use strict mode
+Define interfaces for all data models
+Use proper typing, avoid any
+
+React:
+
+Functional components with hooks
+Custom hooks for data fetching and state logic
+Use React Context for global state (auth, user settings)
+Proper error boundaries
+
+Styling:
+
+Use Tailwind utility classes
+Follow shadcn/ui component patterns
+Maintain consistent spacing and typography
+
+Supabase:
+
+Use RLS policies for all data access
+Never expose service role key in client
+Handle auth state changes properly
+Use Supabase realtime for teacher dashboard
+
+Performance:
+
+Lazy load routes with React.lazy()
+Memoize expensive computations
+Optimize article rendering for long texts
+Use proper indexes in database queries
+
+Environment Variables
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+Key TypeScript Types
+typescript// src/types/index.ts
+
+export type UserRole = 'student' | 'teacher';
+export type Language = 'zh' | 'ja';
+export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
+export type WordStatus = 'learning' | 'mastered';
+
+export interface Profile {
+  id: string;
+  role: UserRole;
+  display_name: string;
+  native_language: string;
+  target_language: Language;
+  current_level: DifficultyLevel;
+  interests: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Article {
+  id: string;
+  language: Language;
+  difficulty_level: DifficultyLevel;
+  topic: string;
+  title: string;
+  content: string;
+  segmented_content: {
+    words: Array<{
+      text: string;
+      start: number;
+      end: number;
+      reading?: string; // Pinyin or Hiragana
+    }>;
+  };
+  word_count: number;
+  target_words: string[];
+  grammar_points: Array<{
+    structure: string;
+    explanation: string;
+    example: string;
+  }>;
+  created_at: string;
+}
+
+export interface WordBankEntry {
+  id: string;
+  user_id: string;
+  word: string;
+  language: Language;
+  definition: string;
+  reading?: string;
+  example_sentence?: string;
+  status: WordStatus;
+  times_reviewed: number;
+  first_seen_at: string;
+  last_reviewed_at?: string;
+}
+
+export interface ReadingHistory {
+  id: string;
+  user_id: string;
+  article_id: string;
+  completed_at: string;
+  time_spent_seconds: number;
+  words_saved_count: number;
+  liked?: boolean;
+}
+
+export interface Class {
+  id: string;
+  teacher_id: string;
+  name: string;
+  join_code: string;
+  created_at: string;
+  archived: boolean;
+}
+
+export interface DictionaryResult {
+  word: string;
+  reading: string;
+  definition: string;
+  example?: string;
+}
+Specific Implementation Instructions
+Supabase Client Setup
+typescript// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+Dictionary API Integration
+typescript// src/lib/dictionaries/jisho.ts
+export async function lookupJapanese(word: string): Promise<DictionaryResult | null> {
+  try {
+    const response = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
+    const data = await response.json();
+    
+    if (data.data && data.data.length > 0) {
+      const entry = data.data[0];
+      return {
+        word: entry.japanese[0].word || entry.japanese[0].reading,
+        reading: entry.japanese[0].reading,
+        definition: entry.senses[0].english_definitions.join(', '),
+        example: entry.senses[0].example_sentence || undefined
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Jisho lookup error:', error);
+    return null;
+  }
+}
+Furigana Auto-Hide Logic
+typescript// src/lib/furigana.ts
+export async function shouldShowFurigana(
+  userId: string,
+  kanji: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('kanji_familiarity')
+    .select('show_furigana, times_encountered')
+    .eq('user_id', userId)
+    .eq('kanji_character', kanji)
+    .single();
+
+  if (error || !data) {
+    // First time seeing this kanji, show furigana
+    return true;
+  }
+
+  // Auto-hide after 3 encounters, unless user overrode
+  if (data.times_encountered >= 3 && data.show_furigana === false) {
+    return false;
+  }
+
+  return data.show_furigana;
+}
+
+export async function trackKanjiEncounter(
+  userId: string,
+  kanji: string
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from('kanji_familiarity')
+    .select('id, times_encountered')
+    .eq('user_id', userId)
+    .eq('kanji_character', kanji)
+    .single();
+
+  if (existing) {
+    await supabase
+      .from('kanji_familiarity')
+      .update({
+        times_encountered: existing.times_encountered + 1,
+        last_seen_at: new Date().toISOString()
+      })
+      .eq('id', existing.id);
+  } else {
+    await supabase
+      .from('kanji_familiarity')
+      .insert({
+        user_id: userId,
+        kanji_character: kanji,
+        times_encountered: 1,
+        show_furigana: true
+      });
+  }
+}
+Deployment Instructions
+
+Supabase Setup:
+
+Create new project at supabase.com
+Run migration SQL in SQL Editor
+Enable Google OAuth in Authentication settings
+Copy URL and anon key to .env.local
+
+
+Vercel Deployment:
+
+bash   npm run build
+   vercel --prod
+
+Add environment variables in Vercel dashboard
+Connect to GitHub repo for auto-deployments
+
+Testing Checklist
+Before demo:
+
+ User can sign up with Google OAuth
+ User can complete onboarding flow
+ Student can read an article and click words
+ Word popup shows correct definitions
+ Words can be saved to word bank
+ Progress dashboard shows accurate stats
+ Teacher can create a class
+ Student can join class with code
+ Teacher can view student progress
+ Furigana displays correctly for Japanese
+ Article recommendations work based on interests
+ CSV export works for teacher
+
+Notes
+
+Content will be added manually - User will generate 40-60 articles using Claude Pro and insert via Supabase dashboard
+Word segmentation must be done during article creation - Pre-process all articles before inserting into database
+Start simple, iterate based on feedback from university testing
+Focus on core reading experience first - Other features can be simplified if time is tight
+
+UI/UX Best Practices for Language Learning Platform
+Core Principles for Reading-First Learning
+The reading interface is the heart of this platform. Every design decision should optimize for comfortable, distraction-free reading while making interactions (word lookups, phrase highlighting) feel natural and unobtrusive. Users should be able to focus on content comprehension without fighting the interface.
+
+Reading Interface Design
+Typography & Readability
+Chinese/Japanese Text Rendering:
+
+Use appropriate fonts: Noto Sans CJK, Source Han Sans, or system defaults (PingFang SC, Hiragino Sans)
+Body text size: Minimum 18px (larger than typical English due to character complexity)
+Line height: 1.8-2.0 (generous spacing improves character recognition)
+Line length: 45-75 characters maximum per line for comfortable reading
+Character spacing: Slight letter-spacing (0.02em) improves readability for dense characters
+
+Visual Hierarchy:
+Article Title: 28-32px, bold
+Section Headers: 20-24px, semi-bold  
+Body Text: 18-20px, regular
+Pinyin/Furigana: 10-12px, lighter weight
+UI Labels: 14-16px
+Color & Contrast
+Reading Modes:
+
+Light mode (default): Black text (#1a1a1a) on off-white (#fafafa) - softer than pure white
+Future consideration: Dark mode for evening reading (#e0e0e0 text on #1e1e1e background)
+
+Interactive Elements:
+
+Clickable words: Subtle underline on hover (dotted, not solid - less intrusive)
+Highlighted phrases: Semi-transparent yellow background (#ffd700, 20% opacity)
+Saved words: Blue underline or colored dot indicator (#3b82f6)
+New vocabulary: Slight bold or different color (#059669 green tint)
+
+Avoid: Never use pure black (#000000) on pure white (#ffffff) - too harsh for extended reading.
+
+Interaction Patterns
+Word Popup Component
+Behavior:
+
+Trigger: Single click/tap on word (not hover - hover is unreliable on trackpads and doesn't exist on mobile)
+Position: Appear below the clicked word to avoid covering surrounding text
+Animation: Fade in quickly (150ms) - no dramatic slides or bounces
+Dismissal: Click anywhere outside popup, ESC key, or click another word
+
+Content Structure:
+┌─────────────────────────┐
+│ 学习 (xué xí)          │  ← Word + reading, larger
+├─────────────────────────┤
+│ to study, to learn     │  ← Definition, clear
+│                         │
+│ Example:                │  ← Label, muted color
+│ 我每天学习中文           │  ← Example sentence
+│ I study Chinese daily  │  ← Translation
+├─────────────────────────┤
+│ [Save to Word Bank]    │  ← Primary action button
+└─────────────────────────┘
+Design Requirements:
+
+Max width: 320px (readable without excessive eye movement)
+Padding: Generous internal spacing (16-20px)
+Shadow: Subtle drop shadow for depth (0 4px 12px rgba(0,0,0,0.1))
+Border radius: 8-12px (friendly, modern)
+Z-index: High enough to appear above all article content
+Arrow/pointer: Optional small triangle pointing to clicked word
+
+Phrase Highlighting Popup
+Trigger: Click-drag selection (2+ words)
+Behavior:
+
+Show popup immediately after mouseup/touchend
+Position near selection (above if space allows, below if near top)
+Auto-dismiss if user clicks elsewhere or starts new selection
+
+Content:
+┌──────────────────────────────┐
+│ 我爱学习中文                  │  ← Selected phrase
+├──────────────────────────────┤
+│ Structure: Subject + 爱 + V │  ← Grammar pattern
+│ "I love to study Chinese"   │  ← Translation
+│                              │
+│ This pattern expresses...   │  ← Brief explanation
+├──────────────────────────────┤
+│ [Save Phrase]                │
+└──────────────────────────────┘
+Furigana Display (Japanese)
+Visual Treatment:
+
+Use <ruby> and <rt> HTML tags (semantic and accessible)
+Furigana size: 50-55% of base text (10-11px if body is 18-20px)
+Color: Slightly muted (#4b5563) to distinguish from main text
+Spacing: Ensure adequate vertical space (line-height 2.0+) to prevent overlap
+
+Toggle Behavior:
+
+Global toggle in top-right corner: Simple icon button (あ/漢)
+State persists across articles (save to user preferences)
+Smooth transition (fade out, not instant disappear)
+
+Auto-Hide Logic:
+
+After 3+ encounters, hide furigana with subtle fade-out
+Show tooltip on hover: "You've seen this 3 times" (encourages progress awareness)
+User can always override with global toggle
+
+
+Progress & Feedback
+Immediate Feedback
+Word Saved:
+
+Toast notification bottom-right: "Added to Word Bank" (3 second duration)
+Word in article gets subtle indicator (blue underline or dot)
+Micro-animation: Brief pulse or checkmark
+
+Article Completion:
+
+Progress bar at bottom (fixed position, always visible)
+Percentage updates smoothly as user scrolls
+At 80% completion, show subtle prompt: "Almost done! Mark as complete?"
+
+Reading Time:
+
+Small, unobtrusive timer in corner
+Format: "5m 32s" (not intimidating)
+Muted color, doesn't draw attention
+
+Progress Dashboard
+Key Metrics (Large, Celebratory):
+┌──────────────────────────────────────┐
+│  📚 12 Articles Read This Week       │  ← Emoji + number, large
+│  💯 156 Words Saved                  │
+│  ⏱️  2h 34m Reading Time             │
+└──────────────────────────────────────┘
+Activity Chart:
+
+Line or bar chart, minimal styling
+Use brand colors (#3b82f6 blue, #059669 green)
+Show last 30 days by default
+Clear axis labels, grid lines (subtle, #e5e7eb)
+
+Avoid:
+
+Overly gamified elements (badges, levels) - keep professional for classroom use
+Red/negative indicators for "not enough progress" - stay encouraging
+
+
+Teacher Dashboard
+Class Overview
+Design Priorities:
+
+Scanability: Teacher needs to quickly identify struggling students
+Data density: Show multiple metrics without overwhelming
+Actionable insights: Highlight what needs attention
+
+Student List Table:
+┌────────────────────────────────────────────────────────────┐
+│ Name          | Articles | Words | Last Active | Status   │
+├────────────────────────────────────────────────────────────┤
+│ Sarah Chen    |    12    |  156  | 2 hours ago | 🟢 Active│
+│ Mike Liu      |    8     |   94  | 1 day ago   | 🟢 Active│
+│ Alex Kim      |    2     |   23  | 8 days ago  | 🔴 Alert │ ← Red badge
+└────────────────────────────────────────────────────────────┘
+Status Indicators:
+
+🟢 Green: Active within 3 days
+🟡 Yellow: Inactive 4-7 days
+🔴 Red: Inactive 8+ days or 0 articles in past week
+
+Click student → detailed view (modal or new page):
+
+Timeline of activity (chronological list)
+List of completed articles with dates
+Word bank preview (top 10 recent words)
+Export button (prominent, top-right)
+
+Class Metrics Visualization
+Use Charts Purposefully:
+
+Bar chart: Articles read per student (compare performance)
+Line chart: Class activity over time (trend awareness)
+Pie chart: Topic distribution (understand class interests)
+
+Chart Best Practices:
+
+Use shadcn/ui's Recharts integration
+Minimal styling (no 3D effects, gradients)
+Accessible colors (don't rely only on color)
+Export to PNG option (for teacher presentations)
+
+
+Onboarding Flow
+Reduce Friction, Build Confidence
+Step 1: Interest Survey
+
+Layout: Grid of topic cards (2-3 columns)
+Selection: Checkbox-style cards that highlight on select
+Visual: Icon + label for each topic (🍜 Food & Cooking)
+Progress: "1 of 3" indicator at top
+Skip option: "Skip, I'll explore everything" (some users hate commitment)
+
+Step 2: Level Selection
+
+Layout: Vertical cards with clear descriptions
+Beginner card: "I know ~100-500 words" (concrete number helps)
+Visual: Show sample sentence for each level
+Reassurance: "You can change this anytime in settings"
+
+Step 3: Class Join (Optional)
+
+Layout: Single input field, centered
+Placeholder: "Enter class code (e.g., ABC123)"
+Skip button: Prominent "Skip for now" option
+Error handling: "Code not found. Check with your teacher."
+
+Overall Flow:
+
+Keep to 3 screens maximum
+Each screen: 1 clear goal
+No auto-advance (user controls pace)
+Can exit and resume later (save partial progress)
+
+
+Word Bank Interface
+Design for Quick Scanning
+List View (Default):
+┌──────────────────────────────────────────────────┐
+│ [Search...] [Filter: All ▼] [Sort: Recent ▼]   │
+├──────────────────────────────────────────────────┤
+│ 学习 (xué xí)     to study        [Learning] ✏️│
+│ 朋友 (péng you)   friend          [Mastered] ✓ │
+│ 食べる (taberu)   to eat          [Learning] ✏️│
+└──────────────────────────────────────────────────┘
+Card View (Alternative):
+
+Flashcard-style, larger, 2-3 per row
+Click to flip and see definition
+Better for review sessions
+
+Filtering:
+
+Learning / Mastered toggle (pill buttons)
+Language filter (Chinese / Japanese)
+Topic filter (based on which articles words came from)
+
+Actions:
+
+Mark as Mastered (checkbox or toggle)
+Remove from word bank (trash icon, with confirmation)
+View in context (link back to source article)
+
+Empty State:
+
+Friendly illustration or icon
+"Start reading articles to build your word bank"
+CTA button: "Browse Articles"
+
+
+Responsive Considerations (Future Mobile)
+Even though MVP is web-only, design with mobile in mind:
+Touch Targets:
+
+Minimum 44x44px for all interactive elements
+Generous padding around clickable words (increased hit area)
+Buttons: Minimum 48px height
+
+Spacing:
+
+Increase padding on mobile (16px → 20px)
+Stack elements vertically instead of horizontal layouts
+Bottom navigation bar instead of sidebar
+
+Popups on Mobile:
+
+Full-width on small screens (<640px)
+Slide up from bottom (more natural on mobile)
+Include close button (X in top-right)
+
+
+Accessibility Requirements
+Keyboard Navigation
+Essential shortcuts:
+
+Tab: Navigate between words in article
+Enter: Open word popup for focused word
+Esc: Close popup
+Arrow keys: Navigate within word bank list
+/: Focus search input (common pattern)
+
+Focus indicators:
+
+Visible outline on focused words (2px solid #3b82f6)
+Skip to main content link (for screen readers)
+
+Screen Reader Support
+ARIA labels:
+html<span 
+  class="word-clickable"
+  role="button"
+  aria-label="Click to see definition of 学习"
+  tabindex="0"
+>
+  学习
+</span>
+Live regions for feedback:
+html<div aria-live="polite" aria-atomic="true">
+  Word added to word bank
+</div>
+Color Contrast
+
+All text: Minimum 4.5:1 contrast ratio
+Large text (18px+): Minimum 3:1
+Interactive elements: 3:1 against background
+Test with tools: WebAIM Contrast Checker, browser DevTools
+
+
+Error States & Edge Cases
+Graceful Degradation
+Dictionary API fails:
+
+Show error in popup: "Definition not available"
+Offer manual input: "Add your own definition"
+Log error for debugging but don't crash
+
+No articles available:
+
+Friendly empty state with illustration
+"No articles match your criteria"
+Suggest: "Try adjusting filters or exploring all topics"
+
+Slow loading:
+
+Skeleton screens for article list (gray rectangles with shimmer effect)
+Spinner in popup while fetching definition
+Progress bar for article content loading
+
+Network offline:
+
+Toast notification: "You're offline. Some features unavailable."
+Cache last read article for offline viewing (future enhancement)
+
+
+Performance & Perceived Performance
+Loading States
+Article loading:
+
+Show title and first paragraph immediately (progressive loading)
+Fade in remaining content as it loads
+Skeleton for word count, metadata
+
+Dashboard metrics:
+
+Stale-while-revalidate pattern (show cached data, update in background)
+Optimistic updates (update UI immediately, rollback if fails)
+
+Animation Performance
+Use CSS transforms (GPU-accelerated):
+css/* Good */
+transform: translateY(10px);
+opacity: 0.5;
+
+/* Avoid */
+top: 10px;
+margin-top: 10px;
+Timing:
+
+Micro-interactions: 150-200ms
+Page transitions: 300ms
+Nothing longer than 500ms
+
+
+Content & Microcopy
+Button Labels (Action-Oriented)
+Good:
+
+"Save to Word Bank" (specific action)
+"Mark as Mastered" (clear outcome)
+"Start Reading" (encouraging)
+"View Student Progress" (explicit)
+
+Avoid:
+
+"OK" / "Submit" (vague)
+"Click here" (obvious, not descriptive)
+"Continue" without context
+
+Empty States (Guide Next Action)
+Word Bank (empty):
+
+Illustration: Open book with sparkles
+"Your word bank is empty"
+"Click words while reading to save them here"
+[Browse Articles] button
+
+No classes (teacher):
+
+"Create your first class to get started"
+"Classes help you track student progress"
+[Create Class] button (prominent)
+
+Error Messages (Friendly, Actionable)
+Bad: "Error 401: Unauthorized"
+Good: "Please sign in again to continue"
+Bad: "Invalid input"
+Good: "Class code must be 6 characters. Check with your teacher."
+
+Testing Checklist
+Usability Testing Focus Areas
+Reading Interface:
+
+Can users easily find and click words?
+Are popups positioned well (not covering important text)?
+Is furigana readable at current size?
+Do users understand how to save words?
+
+Navigation:
+
+Can users find their word bank from any page?
+Is it clear how to return to article browsing?
+Do teachers know where to find student progress?
+
+Onboarding:
+
+Do users complete all steps or drop off?
+Are level descriptions clear enough?
+Do users understand the class join code step?
+
+Cross-Browser Testing
+
+Chrome (primary)
+Firefox (check font rendering)
+Safari (different text rendering engine)
+Edge (similar to Chrome but test anyway)
+
+Device Testing (Future)
+
+Desktop: 1920x1080, 1366x768 (most common)
+Tablet: iPad Air (common in education)
+Mobile: iPhone 12/13 size, Android mid-range
+
+
+Design System Consistency
+Use shadcn/ui Components
+Leverage these for consistency:
+
+Button (primary, secondary, ghost variants)
+Card (for article cards, metrics)
+Dialog (for confirmations, role selection)
+Popover (for word/phrase popups)
+Table (for teacher student list)
+Tabs (for dashboard sections)
+Toast (for notifications)
+Select (for filters, dropdowns)
+
+Customize minimally:
+
+Override colors to match brand
+Adjust spacing for reading interface
+Keep default behavior (accessibility built-in)
+
+Spacing Scale (Tailwind)
+Use consistent spacing:
+
+space-2 (8px): Tight spacing within components
+space-4 (16px): Standard padding
+space-6 (24px): Section separation
+space-8 (32px): Major section breaks
+
+
+Final UX Principles for This Project
+
+Reading comes first - Don't clutter the article view
+Instant feedback - Every interaction gets acknowledgment
+Progressive disclosure - Show advanced features only when relevant
+Forgiveness - Easy undo, clear confirmations for destructive actions
+Encouragement - Celebrate progress, never shame for not knowing words
+Professionalism - This will be used in classrooms; keep it polished and respectful
+
+Remember: You are not your user. Test with real students and teachers regularly. Their struggles reveal what needs improvement.
+
+
+Your Task
+Build this MVP following the specifications above. Prioritize the implementation schedule, start with Week 1 tasks, and ensure all core features are functional before the university demo. Ask clarifying questions if any requirements are ambiguous.
+Use shadcn/ui components extensively for consistent, accessible UI. Follow React and TypeScript best practices. Implement proper error handling and loading states throughout.
+
+User Experience is VERY IMPORTANT
+Make sure to have responsive UI design!
+
+# General Context
+# CLAUDE CODE CONFIGURATION
+
+## DEBUGGING PROTOCOL
+Invoke debugger agent.
+
+## REFACTORING PROTOCOL
+Invoke refactoring agent.
+
+## TESTING PROTOCOL
+- MANDATORY: Test after EVERY BATCH of changes, e.g. after a TODO list finish.
+- TEST HIERARCHY:
+  1. Look for project-specific test commands
+  2. Check for build/compile instructions
+  3. Verify type checking passes
+  4. Run unit tests if available
+  5. Execute integration tests if present
+- If no test method found: 
+  - Search project for testing approach
+  - Notify if changes are untested
+  - State: "Changes implemented but NOT tested - no test method found"
+
+## RESPONSE PATTERNS
+- When stuck: "Cannot determine root cause. Searching for additional context..."
+- When unclear: "Refactor purpose unclear. Need clarification on: [specific question]"
+- When untested: "Changes complete but UNTESTED - no test method available"
+- When suggesting: "Potential issue found: [issue]. Suggest: [solution]. Implement? (requires approval)"
+
+## PRIORITY HIERARCHY
+1. Understand fully before acting
+2. Find root causes, not symptoms
+3. Follow existing patterns exactly
+4. Test changes after you're done, but sparsely, to avoid wasting tokens
+5. Communicate limitations clearly
+
+# TOKEN CONSERVATION PROTOCOL
+
+PRIME: Be ruthlessly concise. Default minimal output; expand only on explicit request.
+
+OUTPUT
+- Default: ULTRA-CONCISE (one-line task/status entries).
+  Example: `✓ Fixed: auth.py:45 - null check added`
+- Never add process narration, apologies, teaching, or repeated prompts.
+
+SEARCH / FILE OPS
+- Don’t announce actions. Just perform and report results.
+  Example: `Found: 12 usages in 4 files`
+- When running commands: one-line success or relevant error lines only.
+
+THINK vs WRITE
+- THINK (internal): approach, checks, hypotheses.
+- WRITE: final result, direct blockers, required decisions.
+
+COMPLETION SIGNALS
+- `✓` = done
+- `⚠` = done with issues
+- Multiple tasks: list each `✓`/`⚠`
+
+EXPANSION TRIGGERS (user must say)
+- "explain", "give me details", "why", "verbose", "walk me through it", "teach me", along these lines
+
+TOKEN WASTERS (avoid)
+- Apologizing, hedging, meta-talk, redundancy, confirmations, unnecessary formatting, teaching.
+
+EXCEPTIONS (brief only)
+- Auto-expand for security, data loss, breaking changes, or unforseen consequences of code; keep wording terse.
+  Example: `⚠ SECURITY: SQL injection at src/db.py:78`
+
+When unsure: say less.
+
+**Purpose:** When given a coding task, make your code *indistinguishable* from the code already in the repository. Match style, tone, and intent so reviewers see a seamless continuation of the project.
+
+**Hard rules (MUST):**
+
+* **Infer and match conventions.** Before writing code, scan nearby files to infer indentation, brace style, naming/case conventions, docstring/comment style, API patterns, error/message wording, test layout, and formatting rules. Match them exactly.
+* **Match comment & documentation voice.** Copy the level of formality, punctuation, abbreviation style, and tag usage (e.g. `Args:`, `Parameters`, `Returns`) used in existing docs and comments.
+* **Preserve API & compatibility.** Prefer additive, backward-compatible changes. Keep public function signatures, commit message style, and versioning patterns consistent with the repo.
+* **Understand intent.** You MUST understand *why* the change is required. If you cannot confidently justify the implementation (design choices, trade-offs, constraints), **ask a clarifying question** before coding.
+* **Frameworks & idioms.** If building on a framework or library used in the repo, first read its usage in the codebase (common wrappers, helper utilities, initialization patterns) and follow those idioms exactly.
+* **Tests & minimal diffs.** Add tests that match the repo’s test style and keep changes minimal and well-scoped. Aim for small, reviewable diffs.
+* **Emulate tooling.** If the project uses linters/formatters (or appears to), produce output that would pass them; if unsure, mirror the most common patterns you found.
+* **Avoid unnecessary comments.** Do NOT add comments detailing a change. e.g. // Make single threaded or // Changed to.
+* **Avoid redundant type comments.** When documenting table/object types, use concise `type:` notation without redundant descriptions. Example: `-- type: [name][dir] = {...}` NOT `-- Store adjacency rules: [name][dir] = {...}`  
+
+**If uncertain:** explicitly list what you checked and what remains ambiguous, then ask one short targeted question (e.g., “Prefer `snake_case` or `camelCase` for private helpers in this module?”).
