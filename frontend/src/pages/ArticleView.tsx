@@ -62,18 +62,18 @@ export default function ArticleView() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <Button variant="ghost" onClick={() => navigate('/home')}>
+    <div className="min-h-screen bg-[#fafafa]">
+      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur shadow-sm">
+        <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="text-sm sm:text-base">
             ← Back
           </Button>
-          <h1 className="text-lg font-semibold">{article.title}</h1>
-          <div className="w-20"></div>
+          <h1 className="text-sm sm:text-lg font-semibold text-[#1a1a1a] truncate max-w-[50%] sm:max-w-none">{article.title}</h1>
+          <div className="w-12 sm:w-20"></div>
         </div>
       </header>
 
-      <main className="container mx-auto max-w-4xl px-4 py-8 space-y-8">
+      <main className="container mx-auto max-w-4xl px-4 sm:px-6 py-6 sm:py-8 pb-28 sm:pb-32 space-y-6 sm:space-y-8">
         <ArticleReader article={article} onComplete={handleArticleComplete} />
 
         {showFeedback && user && (

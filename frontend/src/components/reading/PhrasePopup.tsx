@@ -62,14 +62,20 @@ export function PhrasePopup({
     <>
       {/* Backdrop to close popup on outside click */}
       <div
-        className="fixed inset-0 z-[9998] bg-transparent"
+        className="fixed inset-0 bg-transparent"
+        style={{ zIndex: 10000 }}
         onClick={onClose}
       />
 
       <div
         ref={popupRef}
-        className="fixed z-[9999] max-w-md rounded-lg border-2 border-primary/20 bg-background p-4 shadow-2xl"
-        style={{ top: adjustedPosition.y, left: adjustedPosition.x }}
+        className="fixed max-w-md max-sm:left-0 max-sm:right-0 max-sm:bottom-0 max-sm:max-w-full rounded-lg max-sm:rounded-t-lg max-sm:rounded-b-none border-2 border-primary/20 bg-white p-4 shadow-2xl"
+        style={{
+          top: adjustedPosition.y,
+          left: adjustedPosition.x,
+          zIndex: 10001,
+          isolation: 'isolate'
+        }}
       >
         {loading ? (
           <div className="text-center">

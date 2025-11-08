@@ -33,6 +33,8 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const [saving, setSaving] = useState(false);
   const [wordsSaved, setWordsSaved] = useState(0);
   const [hasTrackedCompletion, setHasTrackedCompletion] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [timeSpent, setTimeSpent] = useState(0);
 
   useEffect(() => {
     if (selectedWord) {
@@ -81,19 +83,31 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     }
   }, []);
 
+  // Timer effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeSpent(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Scroll tracking effect
   useEffect(() => {
     const handleScroll = () => {
-      if (hasTrackedCompletion) return;
-
       const scrollPercentage =
         (window.scrollY + window.innerHeight) / document.documentElement.scrollHeight;
 
-      if (scrollPercentage >= 0.8) {
+      setScrollProgress(Math.min(Math.round(scrollPercentage * 100), 100));
+
+      if (scrollPercentage >= 0.8 && !hasTrackedCompletion) {
         trackCompletion();
       }
     };
 
     window.addEventListener('scroll', handleScroll);
+    // Initial calculation
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, [hasTrackedCompletion, wordsSaved]);
 
@@ -364,8 +378,13 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
 
       {selectedWord && loading && createPortal(
         <div
-          className="fixed z-[9999] rounded-md bg-background border p-4 shadow-lg"
-          style={{ top: selectedWord.position.y, left: selectedWord.position.x }}
+          className="fixed rounded-md bg-background border p-4 shadow-lg"
+          style={{
+            top: selectedWord.position.y,
+            left: selectedWord.position.x,
+            zIndex: 10001,
+            isolation: 'isolate'
+          }}
         >
           Loading...
         </div>,
@@ -393,6 +412,22 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           saving={saving}
         />
       )}
+
+      {/* Progress Bar - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/98 backdrop-blur border-t border-gray-200 shadow-lg" style={{ zIndex: 50 }}>
+        <div className="container mx-auto max-w-4xl px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-2">
+            <span className="font-medium">Progress: {scrollProgress}%</span>
+            <span className="font-medium">Time: {Math.floor(timeSpent / 60)}m {String(timeSpent % 60).padStart(2, '0')}s</span>
+          </div>
+          <div className="w-full h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-600 transition-all duration-300 ease-out"
+              style={{ width: `${scrollProgress}%` }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

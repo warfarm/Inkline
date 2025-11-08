@@ -53,17 +53,23 @@ export function WordPopup({ result, position, onSave, onClose, saving }: WordPop
     <>
       {/* Backdrop to close popup on outside click */}
       <div
-        className="fixed inset-0 z-[9998] bg-transparent"
+        className="fixed inset-0 bg-transparent"
+        style={{ zIndex: 10000 }}
         onClick={onClose}
       />
 
       <div
         ref={popupRef}
-        className="fixed z-[9999]"
-        style={{ top: adjustedPosition.y, left: adjustedPosition.x }}
+        className="fixed max-sm:left-0 max-sm:right-0 max-sm:bottom-0"
+        style={{
+          top: adjustedPosition.y,
+          left: adjustedPosition.x,
+          zIndex: 10001,
+          isolation: 'isolate'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <Card className="w-80 shadow-2xl border-2 border-primary/20">
+        <Card className="w-80 max-sm:w-full max-sm:rounded-t-lg max-sm:rounded-b-none shadow-2xl border-2 border-primary/20 bg-white">
           <CardContent className="p-4 space-y-3">
             <div className="space-y-1">
               <div className="text-2xl font-bold">{result.word}</div>

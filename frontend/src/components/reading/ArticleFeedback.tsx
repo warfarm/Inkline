@@ -14,7 +14,7 @@ export function ArticleFeedback({ articleId, userId, topic }: ArticleFeedbackPro
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleFeedback = async (liked: boolean) => {
+  const handleFeedback = async (liked: boolean | null) => {
     setLoading(true);
     try {
       // Update the reading_history entry with the liked status
@@ -29,10 +29,18 @@ export function ArticleFeedback({ articleId, userId, topic }: ArticleFeedbackPro
       if (error) throw error;
 
       setSubmitted(true);
+
+      let description = '';
+      if (liked === true) {
+        description = `We'll show you more articles about ${topic}`;
+      } else if (liked === false) {
+        description = `We'll show you fewer articles about ${topic}`;
+      } else {
+        description = 'Your preference has been noted';
+      }
+
       toast.success('Thanks for your feedback!', {
-        description: liked
-          ? `We'll show you more articles about ${topic}`
-          : `We'll show you fewer articles about ${topic}`,
+        description,
         duration: 3000,
       });
     } catch (error) {
@@ -65,28 +73,40 @@ export function ArticleFeedback({ articleId, userId, topic }: ArticleFeedbackPro
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-3 justify-center flex-wrap">
           <Button
             variant="outline"
             size="lg"
             onClick={() => handleFeedback(true)}
             disabled={loading}
-            className="flex-1 max-w-xs hover:bg-green-50 hover:border-green-500 hover:text-green-700 dark:hover:bg-green-950"
+            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-green-50 hover:border-green-500 hover:text-green-700 dark:hover:bg-green-950"
           >
-            👍 More like this
+            <span className="text-lg mr-2">👍</span>
+            More
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => handleFeedback(null)}
+            disabled={loading}
+            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <span className="text-lg mr-2">😐</span>
+            Neutral
           </Button>
           <Button
             variant="outline"
             size="lg"
             onClick={() => handleFeedback(false)}
             disabled={loading}
-            className="flex-1 max-w-xs hover:bg-red-50 hover:border-red-500 hover:text-red-700 dark:hover:bg-red-950"
+            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-red-50 hover:border-red-500 hover:text-red-700 dark:hover:bg-red-950"
           >
-            👎 Less like this
+            <span className="text-lg mr-2">👎</span>
+            Less
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground text-center mt-3">
-          This helps us personalize articles about "{topic}" for you
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          This helps us recommend better articles about "{topic}"
         </p>
       </CardContent>
     </Card>
