@@ -194,13 +194,15 @@ export default function Settings() {
           <CardContent className="space-y-3">
             <Label className="text-base font-semibold">Theme</Label>
             <div className="grid gap-3">
-              {THEMES.map((themeOption) => (
+              {THEMES.map((themeOption) => {
+                const isSelected = theme === themeOption.value;
+                return (
                 <button
                   key={themeOption.value}
                   type="button"
                   onClick={() => setTheme(themeOption.value)}
                   className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
-                    theme === themeOption.value
+                    isSelected
                       ? 'border-primary bg-primary/10'
                       : 'border-border hover:border-primary/50'
                   }`}
@@ -211,17 +213,21 @@ export default function Settings() {
                   </div>
                   <div
                     className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
-                      theme === themeOption.value
+                      isSelected
                         ? 'border-primary'
                         : 'border-muted-foreground'
                     }`}
                   >
-                    {theme === themeOption.value && (
-                      <div className="h-3 w-3 rounded-full bg-primary" />
+                    {isSelected && (
+                      <div
+                        className="h-3 w-3 rounded-full bg-primary"
+                        style={{ backgroundColor: 'hsl(var(--primary))' }}
+                      />
                     )}
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

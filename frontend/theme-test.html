@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --border: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+        }
+
+        .sepia {
+            --background: 35 25% 82%;
+            --foreground: 30 25% 12%;
+            --primary: 30 40% 20%;
+            --primary-foreground: 40 50% 95%;
+            --border: 35 18% 62%;
+            --muted-foreground: 30 15% 35%;
+        }
+
+        .night {
+            --background: 240 10% 8%;
+            --foreground: 210 40% 95%;
+            --primary: 210 40% 95%;
+            --primary-foreground: 240 10% 8%;
+            --border: 240 8% 20%;
+            --muted-foreground: 215 20% 60%;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: "hsl(var(--background))",
+                        foreground: "hsl(var(--foreground))",
+                        primary: {
+                            DEFAULT: "hsl(var(--primary))",
+                            foreground: "hsl(var(--primary-foreground))",
+                        },
+                        border: "hsl(var(--border))",
+                        'muted-foreground': "hsl(var(--muted-foreground))",
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="min-h-screen p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Theme Selection Test</h1>
+
+        <div class="space-y-3" id="theme-options">
+            <!-- Theme options will be inserted here -->
+        </div>
+
+        <div class="mt-6 p-4 border-2 rounded-lg">
+            <h2 class="font-semibold mb-2">Debug Info:</h2>
+            <div id="debug-info" class="font-mono text-sm"></div>
+        </div>
+    </div>
+
+    <script>
+        const THEMES = [
+            { value: 'light', label: 'Light', description: 'Clean and bright theme (default)' },
+            { value: 'dark', label: 'Dark', description: 'Easy on the eyes in low light' },
+            { value: 'sepia', label: 'Sepia', description: 'Warm tones for comfortable reading' },
+            { value: 'night', label: 'Night', description: 'Deep dark theme for nighttime use' },
+        ];
+
+        let currentTheme = localStorage.getItem('theme_preference') || 'light';
+
+        function applyTheme(theme) {
+            document.documentElement.classList.remove('light', 'dark', 'sepia', 'night');
+            document.documentElement.classList.add(theme);
+            localStorage.setItem('theme_preference', theme);
+            currentTheme = theme;
+            updateDebugInfo();
+            renderThemeOptions();
+        }
+
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debug-info');
+            debugDiv.textContent = '';
+            const lines = [
+                'Current Theme: ' + currentTheme,
+                'Type: ' + typeof currentTheme,
+                'Document Classes: ' + document.documentElement.className
+            ];
+            lines.forEach(line => {
+                const p = document.createElement('div');
+                p.textContent = line;
+                debugDiv.appendChild(p);
+            });
+        }
+
+        function createThemeButton(themeOption) {
+            const isSelected = currentTheme === themeOption.value;
+            console.log('Rendering:', themeOption.value, 'Current:', currentTheme, 'Selected:', isSelected);
+
+            const button = document.createElement('button');
+            button.onclick = () => applyTheme(themeOption.value);
+            button.setAttribute('data-selected', isSelected);
+            button.className = 'flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer w-full ' +
+                (isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50');
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'flex-1';
+
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'font-medium';
+            labelDiv.textContent = themeOption.label;
+
+            const descDiv = document.createElement('div');
+            descDiv.className = 'text-sm text-muted-foreground';
+            descDiv.textContent = themeOption.description;
+
+            contentDiv.appendChild(labelDiv);
+            contentDiv.appendChild(descDiv);
+
+            const radioDiv = document.createElement('div');
+            radioDiv.className = 'h-5 w-5 rounded-full border-2 flex items-center justify-center ' +
+                (isSelected ? 'border-primary' : 'border-muted-foreground');
+
+            if (isSelected) {
+                const innerCircle = document.createElement('div');
+                innerCircle.className = 'h-3 w-3 rounded-full bg-primary';
+                radioDiv.appendChild(innerCircle);
+            }
+
+            button.appendChild(contentDiv);
+            button.appendChild(radioDiv);
+
+            return button;
+        }
+
+        function renderThemeOptions() {
+            const container = document.getElementById('theme-options');
+            container.textContent = '';
+            THEMES.forEach(themeOption => {
+                container.appendChild(createThemeButton(themeOption));
+            });
+        }
+
+        // Initialize
+        applyTheme(currentTheme);
+    </script>
+</body>
+</html>

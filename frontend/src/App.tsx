@@ -10,6 +10,7 @@ import Progress from '@/pages/Progress';
 import MyClasses from '@/pages/MyClasses';
 import JoinClass from '@/pages/JoinClass';
 import Settings from '@/pages/Settings';
+import SettingsTest from '@/pages/SettingsTest';
 import TeacherDashboard from '@/pages/TeacherDashboard';
 import ClassDetail from '@/pages/ClassDetail';
 
@@ -48,6 +49,7 @@ function App() {
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<Login />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/test-settings" element={<SettingsTest />} />
 
       <Route
         path="/onboarding"

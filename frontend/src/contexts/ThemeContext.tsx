@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'night';
@@ -13,7 +13,7 @@ export const ThemeContext = createContext<ThemeContextType | undefined>(undefine
 const STORAGE_KEY = 'theme_preference';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark' || stored === 'sepia' || stored === 'night') {
       return stored as Theme;
@@ -33,6 +33,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // Store preference
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
+
+  const setTheme = useCallback((newTheme: Theme) => {
+    setThemeState(newTheme);
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
