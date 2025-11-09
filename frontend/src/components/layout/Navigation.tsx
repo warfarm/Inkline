@@ -49,6 +49,9 @@ export function Navigation() {
               <Button variant="ghost" onClick={() => navigate('/my-classes')}>
                 My Classes
               </Button>
+              <Button variant="ghost" onClick={() => navigate('/settings')}>
+                Settings
+              </Button>
             </>
           ) : (
             <>

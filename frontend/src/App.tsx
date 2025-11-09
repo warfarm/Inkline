@@ -9,6 +9,7 @@ import WordBank from '@/pages/WordBank';
 import Progress from '@/pages/Progress';
 import MyClasses from '@/pages/MyClasses';
 import JoinClass from '@/pages/JoinClass';
+import Settings from '@/pages/Settings';
 import TeacherDashboard from '@/pages/TeacherDashboard';
 import ClassDetail from '@/pages/ClassDetail';
 
@@ -107,6 +108,15 @@ function App() {
         element={
           <ProtectedRoute requiredRole="student">
             <JoinClass />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <Settings />
           </ProtectedRoute>
         }
       />
