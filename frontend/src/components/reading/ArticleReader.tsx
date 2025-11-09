@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWordPopupMode } from '@/hooks/useWordPopupMode';
 import { supabase } from '@/lib/supabase';
 import { lookupJapanese } from '@/lib/dictionaries/jisho';
 import { lookupChinese } from '@/lib/dictionaries/chinese';
+import { segmentText } from '@/lib/segmentation';
 import { WordPopup } from './WordPopup';
 import { PhrasePopup } from './PhrasePopup';
 import { toast } from 'sonner';
@@ -40,6 +41,30 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const [hasTrackedCompletion, setHasTrackedCompletion] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
+
+  // Auto-segment full content if segmented_content is incomplete
+  const segmentedWords = useMemo(() => {
+    const existingWords = article.segmented_content?.words || [];
+
+    // Check if segmentation is complete by comparing last word's end position with content length
+    if (existingWords.length === 0) {
+      // No segmentation - segment the full content
+      console.log('No segmentation found, auto-segmenting full content...');
+      return segmentText(article.content, article.language);
+    }
+
+    const lastWord = existingWords[existingWords.length - 1];
+    const isComplete = lastWord && lastWord.end >= article.content.length;
+
+    if (!isComplete) {
+      // Incomplete segmentation - re-segment the full content
+      console.log(`Incomplete segmentation detected (ends at ${lastWord?.end}, content length: ${article.content.length}), auto-segmenting full content...`);
+      return segmentText(article.content, article.language);
+    }
+
+    // Segmentation is complete, use existing
+    return existingWords;
+  }, [article.content, article.segmented_content, article.language]);
 
   useEffect(() => {
     if (selectedWord) {
@@ -484,7 +509,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
               : "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif"
           }}
         >
-          {article.segmented_content.words.map((wordData, index) => (
+          {segmentedWords.map((wordData, index) => (
             <span
               key={index}
               role="button"

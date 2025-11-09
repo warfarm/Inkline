@@ -40,3 +40,17 @@ Before demo:
 - Word segmentation must be done during article creation - Pre-process all articles before inserting into database
 - Start simple, iterate based on feedback from university testing
 - Focus on core reading experience first - Other features can be simplified if time is tight
+
+### Article Data Generation (Manual Process)
+
+Since articles will be manually generated with Claude Pro, use this prompt template:
+
+"Generate a {language} article at {difficulty_level} level about {topic}. 
+Return as JSON with this structure:
+- title
+- content (full text, 200-400 characters)
+- segmented_content.words array with: text, reading (pinyin/hiragana), kanji array, start, end
+- target_words object with 5-8 key vocabulary words including reading, definition, example
+- grammar_points array with 2-3 common structures in the text
+
+Keep language natural and culturally authentic. Target HSK {level} for Chinese, JLPT N{level} for Japanese."
