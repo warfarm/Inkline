@@ -112,7 +112,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           phrase: selectedText,
           position: {
             x: rect.left,
-            y: rect.bottom + window.scrollY + 8,
+            y: rect.bottom + 8,
           },
         });
       }
@@ -234,7 +234,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       word,
       position: {
         x: rect.left,
-        y: rect.bottom + window.scrollY + 8,
+        y: rect.bottom + 8,
       },
     });
   };
@@ -277,7 +277,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         word,
         position: {
           x: rect.left,
-          y: rect.bottom + window.scrollY + 8,
+          y: rect.bottom + 8,
         },
       });
     }, delay);
