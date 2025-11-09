@@ -327,8 +327,10 @@ export default function WordBank() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredWords.map((word) => {
             const isExpanded = expandedCards.has(word.id);
-            const hasExpandableContent = word.example_sentence || word.user_notes || word.grammar_notes ||
-              word.usage_notes || (word.additional_definitions && word.additional_definitions.length > 1);
+            const hasExpandableContent = word.example_sentence ||
+              word.usage_notes ||
+              (word.additional_definitions && word.additional_definitions.length > 1) ||
+              true; // Always allow expanding to add user notes
 
             return (
               <Card key={word.id}>
@@ -388,7 +390,7 @@ export default function WordBank() {
                       onClick={() => toggleCardExpansion(word.id)}
                       className="w-full text-xs"
                     >
-                      {isExpanded ? '▲ Show Less' : '▼ Show More'}
+                      {isExpanded ? '▲ Show Less' : `▼ Show More${word.example_sentence || word.usage_notes || (word.additional_definitions && word.additional_definitions.length > 1) ? ' (Examples, Notes & More)' : ' (Add Notes)'}`}
                     </Button>
                   )}
 

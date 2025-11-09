@@ -276,14 +276,25 @@ export default function ArticleView() {
             ← Back
           </Button>
           <h1 className="text-sm sm:text-lg font-semibold text-[#1a1a1a] truncate max-w-[50%] sm:max-w-none">{article.title}</h1>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-sm"
-            onClick={() => setShowWordBank(!showWordBank)}
-          >
-            {showWordBank ? 'Close' : 'Word Bank'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 p-0"
+              onClick={() => navigate('/settings')}
+              title="Settings"
+            >
+              ⚙️
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-sm"
+              onClick={() => setShowWordBank(!showWordBank)}
+            >
+              {showWordBank ? 'Close' : 'Word Bank'}
+            </Button>
+          </div>
         </div>
       </header>
 
