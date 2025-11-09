@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ const TOPIC_OPTIONS = [
 ];
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -254,7 +256,10 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={() => navigate('/home')}>
+            Cancel
+          </Button>
           <Button onClick={handleSave} disabled={loading}>
             {loading ? 'Saving...' : 'Save Changes'}
           </Button>
