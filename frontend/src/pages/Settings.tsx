@@ -206,14 +206,14 @@ export default function Settings() {
                     <div className="text-sm text-muted-foreground">{themeOption.description}</div>
                   </div>
                   <div
-                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
                       theme === themeOption.value
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground bg-background'
+                        ? 'border-primary'
+                        : 'border-muted-foreground'
                     }`}
                   >
                     {theme === themeOption.value && (
-                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                      <div className="h-3 w-3 rounded-full bg-primary" />
                     )}
                   </div>
                 </button>
@@ -248,14 +248,14 @@ export default function Settings() {
                       <div className="font-medium">{lang.label}</div>
                     </div>
                     <div
-                      className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                      className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
                         selectedLanguage === lang.value
-                          ? 'border-primary bg-primary'
-                          : 'border-muted-foreground bg-background'
+                          ? 'border-primary'
+                          : 'border-muted-foreground'
                       }`}
                     >
                       {selectedLanguage === lang.value && (
-                        <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                        <div className="h-3 w-3 rounded-full bg-primary" />
                       )}
                     </div>
                   </button>
@@ -282,14 +282,14 @@ export default function Settings() {
                       <div className="text-sm text-muted-foreground">{level.description}</div>
                     </div>
                     <div
-                      className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                      className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
                         selectedLevel === level.value
-                          ? 'border-primary bg-primary'
-                          : 'border-muted-foreground bg-background'
+                          ? 'border-primary'
+                          : 'border-muted-foreground'
                       }`}
                     >
                       {selectedLevel === level.value && (
-                        <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                        <div className="h-3 w-3 rounded-full bg-primary" />
                       )}
                     </div>
                   </button>
@@ -361,14 +361,14 @@ export default function Settings() {
                     </div>
                   </div>
                   <div
-                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
                       popupMode === 'hover'
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground bg-background'
+                        ? 'border-primary'
+                        : 'border-muted-foreground'
                     }`}
                   >
                     {popupMode === 'hover' && (
-                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                      <div className="h-3 w-3 rounded-full bg-primary" />
                     )}
                   </div>
                 </button>
@@ -389,14 +389,14 @@ export default function Settings() {
                     </div>
                   </div>
                   <div
-                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
                       popupMode === 'click'
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground bg-background'
+                        ? 'border-primary'
+                        : 'border-muted-foreground'
                     }`}
                   >
                     {popupMode === 'click' && (
-                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                      <div className="h-3 w-3 rounded-full bg-primary" />
                     )}
                   </div>
                 </button>
@@ -422,14 +422,14 @@ export default function Settings() {
                     </div>
                   </div>
                   <div
-                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
                       panelPosition === 'right'
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground bg-background'
+                        ? 'border-primary'
+                        : 'border-muted-foreground'
                     }`}
                   >
                     {panelPosition === 'right' && (
-                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                      <div className="h-3 w-3 rounded-full bg-primary" />
                     )}
                   </div>
                 </button>
@@ -450,14 +450,14 @@ export default function Settings() {
                     </div>
                   </div>
                   <div
-                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
                       panelPosition === 'left'
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground bg-background'
+                        ? 'border-primary'
+                        : 'border-muted-foreground'
                     }`}
                   >
                     {panelPosition === 'left' && (
-                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                      <div className="h-3 w-3 rounded-full bg-primary" />
                     )}
                   </div>
                 </button>

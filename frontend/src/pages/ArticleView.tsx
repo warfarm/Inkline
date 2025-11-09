@@ -275,7 +275,7 @@ export default function ArticleView() {
           <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="text-sm sm:text-base">
             ← Back
           </Button>
-          <h1 className="text-sm sm:text-lg font-semibold text-[#1a1a1a] truncate max-w-[50%] sm:max-w-none">{article.title}</h1>
+          <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate max-w-[50%] sm:max-w-none">{article.title}</h1>
           <div className="flex gap-2">
             <Button
               variant="ghost"

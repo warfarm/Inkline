@@ -540,14 +540,14 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   return (
     <div className="relative">
       <div className="prose prose-lg max-w-none">
-        <h1 className="text-3xl font-bold mb-6 text-[#1a1a1a]">{article.title}</h1>
+        <h1 className="text-3xl font-bold mb-6 text-foreground">{article.title}</h1>
         <div className="text-muted-foreground mb-4 text-base">
           {article.topic} • {article.word_count} words
         </div>
 
         <div
           ref={contentRef}
-          className="space-y-4 text-[20px] leading-[2.0] tracking-[0.02em] select-text"
+          className="space-y-4 text-[20px] leading-[2.0] tracking-[0.02em] select-text text-foreground"
           style={{
             fontFamily: article.language === 'zh'
               ? "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
@@ -562,8 +562,8 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
                 role="button"
                 tabIndex={0}
                 aria-label={`${popupMode === 'hover' ? 'Hover' : 'Click'} to see definition of ${wordData.text}`}
-                className={`cursor-pointer hover:underline hover:decoration-dotted hover:decoration-blue-500 hover:underline-offset-4 px-0.5 transition-all focus:outline-2 focus:outline-blue-600 focus:rounded ${
-                  isSaved ? 'underline decoration-blue-600 decoration-solid underline-offset-4' : ''
+                className={`cursor-pointer hover:underline hover:decoration-dotted hover:decoration-primary hover:underline-offset-4 px-0.5 transition-all focus:outline-2 focus:outline-primary focus:rounded ${
+                  isSaved ? 'underline decoration-primary decoration-solid underline-offset-4' : ''
                 }`}
                 onClick={popupMode === 'click' ? (e) => handleWordClick(wordData.text, e) : undefined}
                 onMouseEnter={popupMode === 'hover' ? (e) => handleWordHover(wordData.text, e) : undefined}
