@@ -380,16 +380,16 @@ export default function WordBank() {
                 <CardContent className="space-y-3">
                   {/* Grammar Notes - Always visible for particles */}
                   {word.grammar_notes && (
-                    <div className="rounded-md bg-blue-50 border border-blue-200 p-2 text-sm">
-                      <div className="font-semibold text-blue-900 mb-1">Grammar:</div>
-                      <div className="text-blue-800">{word.grammar_notes}</div>
+                    <div className="rounded-md bg-accent/50 border border-accent-foreground/20 p-2 text-sm">
+                      <div className="font-semibold text-accent-foreground mb-1">Grammar:</div>
+                      <div className="text-accent-foreground/90">{word.grammar_notes}</div>
                     </div>
                   )}
 
                   {/* Primary Definition */}
                   <div className="text-sm">
                     {word.formality_level && (
-                      <span className="inline-block px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700 mr-2 mb-1">
+                      <span className="inline-block px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground border border-border mr-2 mb-1">
                         {word.formality_level}
                       </span>
                     )}
@@ -434,9 +434,9 @@ export default function WordBank() {
 
                       {/* Usage Notes */}
                       {word.usage_notes && (
-                        <div className="rounded-md bg-amber-50 border border-amber-200 p-2 text-sm">
-                          <div className="font-semibold text-amber-900 mb-1">Usage:</div>
-                          <div className="text-amber-800">{word.usage_notes}</div>
+                        <div className="rounded-md bg-secondary/70 border border-border p-2 text-sm">
+                          <div className="font-semibold text-secondary-foreground mb-1">Usage:</div>
+                          <div className="text-secondary-foreground/90">{word.usage_notes}</div>
                         </div>
                       )}
 
@@ -496,8 +496,8 @@ export default function WordBank() {
                             </div>
                           </div>
                         ) : word.user_notes ? (
-                          <div className="rounded-md bg-green-50 border border-green-200 p-2 text-sm">
-                            <div className="text-green-800 whitespace-pre-wrap">{word.user_notes}</div>
+                          <div className="rounded-md bg-muted/70 border border-muted-foreground/20 p-2 text-sm">
+                            <div className="text-foreground whitespace-pre-wrap">{word.user_notes}</div>
                           </div>
                         ) : (
                           <div className="text-xs text-muted-foreground italic">

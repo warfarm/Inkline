@@ -161,7 +161,7 @@ export default function ArticleView() {
                             )}
                           </div>
                           <span className={`text-xs px-2 py-0.5 rounded ${
-                            word.status === 'mastered' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                            word.status === 'mastered' ? 'bg-primary/20 text-primary-foreground/80 border border-primary/30' : 'bg-secondary text-secondary-foreground border border-border'
                           }`}>
                             {word.status}
                           </span>
@@ -170,9 +170,9 @@ export default function ArticleView() {
                       <CardContent className="pt-0 space-y-2">
                         {/* Grammar Notes */}
                         {word.grammar_notes && (
-                          <div className="rounded-md bg-blue-50 border border-blue-200 p-2 text-xs">
-                            <div className="font-semibold text-blue-900 mb-1">Grammar:</div>
-                            <div className="text-blue-800">{word.grammar_notes}</div>
+                          <div className="rounded-md bg-accent/50 border border-accent-foreground/20 p-2 text-xs">
+                            <div className="font-semibold text-accent-foreground mb-1">Grammar:</div>
+                            <div className="text-accent-foreground/90">{word.grammar_notes}</div>
                           </div>
                         )}
 
@@ -224,9 +224,9 @@ export default function ArticleView() {
 
                             {/* Usage Notes */}
                             {word.usage_notes && (
-                              <div className="rounded-md bg-amber-50 border border-amber-200 p-2 text-xs">
-                                <div className="font-semibold text-amber-900 mb-1">Usage:</div>
-                                <div className="text-amber-800">{word.usage_notes}</div>
+                              <div className="rounded-md bg-secondary/70 border border-border p-2 text-xs">
+                                <div className="font-semibold text-secondary-foreground mb-1">Usage:</div>
+                                <div className="text-secondary-foreground/90">{word.usage_notes}</div>
                               </div>
                             )}
 
@@ -248,8 +248,8 @@ export default function ArticleView() {
                                 <div className="font-semibold text-xs text-muted-foreground mb-1">
                                   Personal Notes:
                                 </div>
-                                <div className="rounded-md bg-green-50 border border-green-200 p-2 text-xs">
-                                  <div className="text-green-800 whitespace-pre-wrap">{word.user_notes}</div>
+                                <div className="rounded-md bg-muted/70 border border-muted-foreground/20 p-2 text-xs">
+                                  <div className="text-foreground whitespace-pre-wrap">{word.user_notes}</div>
                                 </div>
                               </div>
                             )}
@@ -272,12 +272,14 @@ export default function ArticleView() {
       )}
 
       <header className="sticky top-0 z-40 border-b bg-background shadow-sm">
-        <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="text-sm sm:text-base">
-            ← Back
-          </Button>
-          <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate max-w-[50%] sm:max-w-none">{article.title}</h1>
-          <div className="flex gap-2">
+        <div className="container mx-auto grid grid-cols-3 items-center gap-2 px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex justify-start">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="text-sm sm:text-base">
+              ← Back
+            </Button>
+          </div>
+          <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate text-center">{article.title}</h1>
+          <div className="flex gap-2 justify-end">
             <Button
               variant="ghost"
               size="sm"
@@ -290,7 +292,7 @@ export default function ArticleView() {
             <Button
               variant="outline"
               size="sm"
-              className="text-sm"
+              className="text-sm whitespace-nowrap"
               onClick={() => setShowWordBank(!showWordBank)}
             >
               {showWordBank ? 'Close' : 'Word Bank'}
