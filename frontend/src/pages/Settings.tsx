@@ -48,7 +48,11 @@ const TOPIC_OPTIONS = [
   'Current Events',
 ];
 
-const THEMES = [
+const THEMES: Array<{
+  value: 'light' | 'dark' | 'sepia' | 'night';
+  label: string;
+  description: string;
+}> = [
   {
     value: 'light',
     label: 'Light',
@@ -69,7 +73,7 @@ const THEMES = [
     label: 'Night',
     description: 'Deep dark theme for nighttime use',
   },
-] as const;
+];
 
 export default function Settings() {
   const navigate = useNavigate();
