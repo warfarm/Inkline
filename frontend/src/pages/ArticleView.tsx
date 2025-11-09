@@ -124,8 +124,9 @@ export default function ArticleView() {
       {showWordBank && (
         <div
           className={`fixed top-0 ${panelPosition === 'right' ? 'right-0 border-l' : 'left-0 border-r'} h-full w-80 bg-card/100 shadow-xl overflow-y-auto z-[60] transition-transform duration-300`}
+          style={{ backgroundColor: 'hsl(var(--card))' }}
         >
-          <div className="p-4 border-b sticky top-0 bg-card/100 z-[70]">
+          <div className="p-4 border-b sticky top-0 bg-card/100 z-[70]" style={{ backgroundColor: 'hsl(var(--card))' }}>
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-lg">My Word Bank</h2>
               <Button variant="ghost" size="sm" onClick={() => setShowWordBank(false)}>
@@ -262,7 +263,7 @@ export default function ArticleView() {
             )}
           </div>
 
-          <div className="p-4 border-t sticky bottom-0 bg-card/100">
+          <div className="p-4 border-t sticky bottom-0 bg-card/100" style={{ backgroundColor: 'hsl(var(--card))' }}>
             <Button variant="outline" onClick={() => navigate('/word-bank')} className="w-full text-sm">
               View Full Word Bank
             </Button>

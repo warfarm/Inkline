@@ -71,9 +71,9 @@
   .night {
     --background: 240 10% 8%;
     --foreground: 210 40% 95%;
-    --card: 240 10% 10%;
+    --card: 240 10% 15%;
     --card-foreground: 210 40% 95%;
-    --popover: 240 10% 10%;
+    --popover: 240 10% 15%;
     --popover-foreground: 210 40% 95%;
     --primary: 210 40% 95%;
     --primary-foreground: 240 10% 8%;
