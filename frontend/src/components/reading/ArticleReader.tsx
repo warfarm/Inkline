@@ -19,6 +19,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const startTimeRef = useRef<number>(Date.now());
   const contentRef = useRef<HTMLDivElement>(null);
   const lastWordClickRef = useRef<{ word: string; timestamp: number } | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
     position: { x: number; y: number };
@@ -188,12 +189,12 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     }
   };
 
-  const handleWordClick = (word: string, event: React.MouseEvent) => {
-    // Track this click to prevent duplicate popup from text selection handler
-    lastWordClickRef.current = {
-      word,
-      timestamp: Date.now(),
-    };
+  const handleWordHover = (word: string, event: React.MouseEvent) => {
+    // Clear any pending hide timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
 
     // Close phrase popup when opening word popup (mutual exclusion)
     setSelectedPhrase(null);
@@ -207,6 +208,28 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         y: rect.bottom + window.scrollY + 8,
       },
     });
+  };
+
+  const handleWordLeave = () => {
+    // Delay hiding to allow hovering over the popup
+    hoverTimeoutRef.current = setTimeout(() => {
+      setSelectedWord(null);
+      setDictionaryResult(null);
+    }, 300);
+  };
+
+  const handlePopupMouseEnter = () => {
+    // Cancel hide timeout when hovering over popup
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  const handlePopupMouseLeave = () => {
+    // Hide popup when leaving it
+    setSelectedWord(null);
+    setDictionaryResult(null);
   };
 
   const handleSaveWord = async () => {
@@ -383,13 +406,14 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
               key={index}
               role="button"
               tabIndex={0}
-              aria-label={`Click to see definition of ${wordData.text}`}
+              aria-label={`Hover to see definition of ${wordData.text}`}
               className="cursor-pointer hover:underline hover:decoration-dotted hover:decoration-blue-500 hover:underline-offset-4 px-0.5 transition-all focus:outline-2 focus:outline-blue-600 focus:rounded"
-              onClick={(e) => handleWordClick(wordData.text, e)}
+              onMouseEnter={(e) => handleWordHover(wordData.text, e)}
+              onMouseLeave={handleWordLeave}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  handleWordClick(wordData.text, e as any);
+                  handleWordHover(wordData.text, e as any);
                 }
               }}
             >
@@ -421,6 +445,8 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           onSave={handleSaveWord}
           onClose={handleClosePopup}
           saving={saving}
+          onMouseEnter={handlePopupMouseEnter}
+          onMouseLeave={handlePopupMouseLeave}
         />
       )}
 

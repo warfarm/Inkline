@@ -10,9 +10,11 @@ interface WordPopupProps {
   onSave: () => void;
   onClose: () => void;
   saving?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export function WordPopup({ result, position, onSave, onClose, saving }: WordPopupProps) {
+export function WordPopup({ result, position, onSave, onClose, saving, onMouseEnter, onMouseLeave }: WordPopupProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
 
@@ -51,13 +53,6 @@ export function WordPopup({ result, position, onSave, onClose, saving }: WordPop
 
   return createPortal(
     <>
-      {/* Backdrop to close popup on outside click */}
-      <div
-        className="fixed inset-0 bg-transparent"
-        style={{ zIndex: 10000 }}
-        onClick={onClose}
-      />
-
       <div
         ref={popupRef}
         className="fixed max-sm:left-0 max-sm:right-0 max-sm:bottom-0"
@@ -67,7 +62,8 @@ export function WordPopup({ result, position, onSave, onClose, saving }: WordPop
           zIndex: 10001,
           isolation: 'isolate'
         }}
-        onClick={(e) => e.stopPropagation()}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       >
         <Card className="w-80 max-sm:w-full max-sm:rounded-t-lg max-sm:rounded-b-none shadow-2xl border-2 border-primary/20 bg-white">
           <CardContent className="p-4 space-y-3">

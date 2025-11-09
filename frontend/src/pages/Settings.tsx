@@ -119,11 +119,18 @@ export default function Settings() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-8 px-4">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your learning preferences</p>
-      </div>
+    <div className="min-h-screen bg-muted/30">
+      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur shadow-sm">
+        <div className="container mx-auto max-w-4xl flex items-center justify-between px-4 py-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/home')}>
+            ← Back
+          </Button>
+          <h1 className="text-lg font-semibold">Settings</h1>
+          <div className="w-20"></div>
+        </div>
+      </header>
+
+      <div className="container mx-auto max-w-4xl py-8 px-4">
 
       <div className="space-y-6">
         <Card>
@@ -264,6 +271,7 @@ export default function Settings() {
             {loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );
