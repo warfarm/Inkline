@@ -22,16 +22,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    const root = document.documentElement;
+    // Use queueMicrotask to ensure this runs after all state updates
+    queueMicrotask(() => {
+      const root = document.documentElement;
 
-    // Remove all theme classes
-    root.classList.remove('light', 'dark', 'sepia', 'night');
+      // Remove all theme classes
+      root.classList.remove('light', 'dark', 'sepia', 'night');
 
-    // Add the current theme class
-    root.classList.add(theme);
+      // Add the current theme class
+      root.classList.add(theme);
 
-    // Store preference
-    localStorage.setItem(STORAGE_KEY, theme);
+      // Store preference
+      localStorage.setItem(STORAGE_KEY, theme);
+    });
   }, [theme]);
 
   const setTheme = useCallback((newTheme: Theme) => {

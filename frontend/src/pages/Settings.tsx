@@ -265,7 +265,10 @@ export default function Settings() {
                       }`}
                     >
                       {selectedLanguage === lang.value && (
-                        <div className="h-3 w-3 rounded-full bg-primary" />
+                        <div
+                          className="h-3 w-3 rounded-full bg-primary"
+                          style={{ backgroundColor: 'hsl(var(--primary))' }}
+                        />
                       )}
                     </div>
                   </button>
@@ -299,7 +302,10 @@ export default function Settings() {
                       }`}
                     >
                       {selectedLevel === level.value && (
-                        <div className="h-3 w-3 rounded-full bg-primary" />
+                        <div
+                          className="h-3 w-3 rounded-full bg-primary"
+                          style={{ backgroundColor: 'hsl(var(--primary))' }}
+                        />
                       )}
                     </div>
                   </button>
@@ -378,7 +384,10 @@ export default function Settings() {
                     }`}
                   >
                     {popupMode === 'hover' && (
-                      <div className="h-3 w-3 rounded-full bg-primary" />
+                      <div
+                        className="h-3 w-3 rounded-full bg-primary"
+                        style={{ backgroundColor: 'hsl(var(--primary))' }}
+                      />
                     )}
                   </div>
                 </button>
@@ -406,7 +415,10 @@ export default function Settings() {
                     }`}
                   >
                     {popupMode === 'click' && (
-                      <div className="h-3 w-3 rounded-full bg-primary" />
+                      <div
+                        className="h-3 w-3 rounded-full bg-primary"
+                        style={{ backgroundColor: 'hsl(var(--primary))' }}
+                      />
                     )}
                   </div>
                 </button>
@@ -439,7 +451,10 @@ export default function Settings() {
                     }`}
                   >
                     {panelPosition === 'right' && (
-                      <div className="h-3 w-3 rounded-full bg-primary" />
+                      <div
+                        className="h-3 w-3 rounded-full bg-primary"
+                        style={{ backgroundColor: 'hsl(var(--primary))' }}
+                      />
                     )}
                   </div>
                 </button>
@@ -467,7 +482,10 @@ export default function Settings() {
                     }`}
                   >
                     {panelPosition === 'left' && (
-                      <div className="h-3 w-3 rounded-full bg-primary" />
+                      <div
+                        className="h-3 w-3 rounded-full bg-primary"
+                        style={{ backgroundColor: 'hsl(var(--primary))' }}
+                      />
                     )}
                   </div>
                 </button>
