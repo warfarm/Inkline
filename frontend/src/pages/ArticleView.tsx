@@ -262,7 +262,7 @@ export default function ArticleView() {
             )}
           </div>
 
-          <div className="p-4 border-t sticky bottom-0 bg-card">
+          <div className="p-4 border-t sticky bottom-0 bg-card/100">
             <Button variant="outline" onClick={() => navigate('/word-bank')} className="w-full text-sm">
               View Full Word Bank
             </Button>

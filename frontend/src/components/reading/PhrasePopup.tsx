@@ -132,7 +132,8 @@ export function PhrasePopup({
           top: adjustedPosition.y,
           left: adjustedPosition.x,
           zIndex: 10001,
-          isolation: 'isolate'
+          isolation: 'isolate',
+          backgroundColor: 'hsl(var(--card))'
         }}
         onClick={(e) => e.stopPropagation()}
       >
