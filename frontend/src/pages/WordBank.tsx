@@ -19,6 +19,7 @@ export default function WordBank() {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [editingNotes, setEditingNotes] = useState<{ [key: string]: string }>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [speakingWords, setSpeakingWords] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -172,6 +173,43 @@ export default function WordBank() {
     toast.success('Flashcards exported successfully!');
   };
 
+  const handleSpeak = (word: string, wordId: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(word);
+      const hasHiragana = /[\u3040-\u309F]/.test(word);
+      const hasKatakana = /[\u30A0-\u30FF]/.test(word);
+      const isJapanese = hasHiragana || hasKatakana;
+
+      utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+      utterance.rate = 0.8;
+
+      utterance.onstart = () => {
+        setSpeakingWords(new Set([wordId]));
+      };
+
+      utterance.onend = () => {
+        setSpeakingWords(new Set());
+      };
+
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        setSpeakingWords(new Set());
+        toast.error('Unable to play audio for this word');
+      };
+
+      // Ensure voices are loaded before speaking
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+          window.speechSynthesis.speak(utterance);
+        }, { once: true });
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+  };
+
   const filteredWords = words.filter((w) => {
     // Apply status filter
     const matchesFilter = filter === 'all' || w.status === filter;
@@ -288,7 +326,19 @@ export default function WordBank() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-2xl">{word.word}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-2xl">{word.word}</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSpeak(word.word, word.id)}
+                          disabled={speakingWords.has(word.id)}
+                          className="h-8 w-8 p-0 text-lg"
+                          title="Listen to pronunciation"
+                        >
+                          {speakingWords.has(word.id) ? '⏸' : '🔊'}
+                        </Button>
+                      </div>
                       {word.reading && (
                         <CardDescription className="mt-1">{word.reading}</CardDescription>
                       )}

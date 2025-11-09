@@ -10,24 +10,26 @@ interface FlashcardPracticeProps {
 }
 
 export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPracticeProps) {
+  const [shuffledWords, setShuffledWords] = useState<WordBankEntry[]>(words);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [reviewedWords, setReviewedWords] = useState<Set<string>>(new Set());
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const currentWord = words[currentIndex];
+  const currentWord = shuffledWords[currentIndex];
   const progress = currentIndex + 1;
-  const total = words.length;
+  const total = shuffledWords.length;
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         setIsFlipped(!isFlipped);
-      } else if (e.key === 'ArrowRight' || e.key === 'n') {
+      } else if (e.key === 'ArrowRight' || e.key === 'n' || e.key === 'N') {
         handleNext();
-      } else if (e.key === 'ArrowLeft' || e.key === 'p') {
+      } else if (e.key === 'ArrowLeft' || e.key === 'p' || e.key === 'P' || e.key === 'b' || e.key === 'B') {
         handlePrevious();
-      } else if (e.key === 'm') {
+      } else if (e.key === 'm' || e.key === 'M') {
         handleMarkMastered();
       }
     };
@@ -37,10 +39,14 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
   }, [isFlipped, currentIndex]);
 
   const handleNext = () => {
-    if (currentIndex < words.length - 1) {
+    setReviewedWords(new Set(reviewedWords).add(currentWord.id));
+    if (currentIndex < shuffledWords.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setIsFlipped(false);
-      setReviewedWords(new Set(reviewedWords).add(currentWord.id));
+    } else {
+      // Loop back to the beginning
+      setCurrentIndex(0);
+      setIsFlipped(false);
     }
   };
 
@@ -48,6 +54,47 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
       setIsFlipped(false);
+    } else {
+      // Loop back to the end
+      setCurrentIndex(shuffledWords.length - 1);
+      setIsFlipped(false);
+    }
+  };
+
+  const handleShuffle = () => {
+    const shuffled = [...shuffledWords].sort(() => Math.random() - 0.5);
+    setShuffledWords(shuffled);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  };
+
+  const handleSpeak = () => {
+    if ('speechSynthesis' in window && currentWord) {
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(currentWord.word);
+      const hasHiragana = /[\u3040-\u309F]/.test(currentWord.word);
+      const hasKatakana = /[\u30A0-\u30FF]/.test(currentWord.word);
+      const isJapanese = hasHiragana || hasKatakana;
+
+      utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+      utterance.rate = 0.8;
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        setIsSpeaking(false);
+      };
+
+      // Ensure voices are loaded before speaking
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+          window.speechSynthesis.speak(utterance);
+        }, { once: true });
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
     }
   };
 
@@ -82,9 +129,14 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
             {progress} of {total}
           </p>
         </div>
-        <Button variant="outline" onClick={onExit}>
-          Exit Practice
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleShuffle}>
+            🔀 Shuffle
+          </Button>
+          <Button variant="outline" onClick={onExit}>
+            Exit Practice
+          </Button>
+        </div>
       </div>
 
       {/* Progress Bar */}
@@ -104,7 +156,22 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
           {!isFlipped ? (
             // Front: Word
             <div className="text-center space-y-4">
-              <div className="text-5xl font-bold mb-4">{currentWord.word}</div>
+              <div className="flex items-center justify-center gap-3">
+                <div className="text-5xl font-bold">{currentWord.word}</div>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSpeak();
+                  }}
+                  disabled={isSpeaking}
+                  className="h-12 w-12 p-0 text-2xl"
+                  title="Listen to pronunciation"
+                >
+                  {isSpeaking ? '⏸' : '🔊'}
+                </Button>
+              </div>
               {currentWord.reading && (
                 <div className="text-2xl text-muted-foreground">{currentWord.reading}</div>
               )}
@@ -115,7 +182,22 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
           ) : (
             // Back: Definition
             <div className="text-center space-y-6 max-w-2xl">
-              <div className="text-3xl font-bold mb-4">{currentWord.word}</div>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="text-3xl font-bold">{currentWord.word}</div>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSpeak();
+                  }}
+                  disabled={isSpeaking}
+                  className="h-10 w-10 p-0 text-xl"
+                  title="Listen to pronunciation"
+                >
+                  {isSpeaking ? '⏸' : '🔊'}
+                </Button>
+              </div>
               {currentWord.reading && (
                 <div className="text-xl text-muted-foreground">{currentWord.reading}</div>
               )}
@@ -136,9 +218,8 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
         <Button
           variant="outline"
           onClick={handlePrevious}
-          disabled={currentIndex === 0}
         >
-          ← Previous (P)
+          ← Previous (B)
         </Button>
 
         <div className="flex gap-2">
@@ -158,7 +239,6 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
         <Button
           variant="outline"
           onClick={handleNext}
-          disabled={currentIndex === words.length - 1}
         >
           Next (N) →
         </Button>
@@ -170,7 +250,7 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
           <div className="text-xs text-muted-foreground grid grid-cols-2 md:grid-cols-4 gap-2">
             <div><kbd className="px-2 py-1 bg-background rounded">Space</kbd> Flip</div>
             <div><kbd className="px-2 py-1 bg-background rounded">N/→</kbd> Next</div>
-            <div><kbd className="px-2 py-1 bg-background rounded">P/←</kbd> Previous</div>
+            <div><kbd className="px-2 py-1 bg-background rounded">B/P/←</kbd> Previous</div>
             <div><kbd className="px-2 py-1 bg-background rounded">M</kbd> Mark Mastered</div>
           </div>
         </CardContent>

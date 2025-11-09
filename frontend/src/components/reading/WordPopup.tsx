@@ -74,9 +74,19 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
 
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        setIsSpeaking(false);
+      };
 
-      window.speechSynthesis.speak(utterance);
+      // Ensure voices are loaded before speaking
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+          window.speechSynthesis.speak(utterance);
+        }, { once: true });
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
     }
   };
 
@@ -102,10 +112,10 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
                 <div className="text-2xl font-bold">{result.word}</div>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="lg"
                   onClick={handleSpeak}
                   disabled={isSpeaking}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 p-0 text-xl"
                   title="Listen to pronunciation"
                 >
                   {isSpeaking ? '⏸' : '🔊'}
