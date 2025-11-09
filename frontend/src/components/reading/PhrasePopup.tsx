@@ -62,33 +62,42 @@ export function PhrasePopup({
   const handleSpeak = () => {
     if ('speechSynthesis' in window && result) {
       // Cancel any ongoing speech
-      window.speechSynthesis.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(result.word);
-
-      // Set language based on the word
-      const hasHiragana = /[\u3040-\u309F]/.test(result.word);
-      const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
-      const isJapanese = hasHiragana || hasKatakana;
-
-      utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
-      utterance.rate = 0.8;
-
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
-        setIsSpeaking(false);
-      };
-
-      // Ensure voices are loaded before speaking
-      if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.addEventListener('voiceschanged', () => {
-          window.speechSynthesis.speak(utterance);
-        }, { once: true });
-      } else {
-        window.speechSynthesis.speak(utterance);
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
       }
+
+      // Add a small delay to ensure cancel completes
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(result.word);
+
+        // Set language based on the word
+        const hasHiragana = /[\u3040-\u309F]/.test(result.word);
+        const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
+        const isJapanese = hasHiragana || hasKatakana;
+
+        utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+        utterance.rate = 0.8;
+
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = (event) => {
+          console.error('Speech synthesis error:', event);
+          setIsSpeaking(false);
+          // Only show error if it's not an "interrupted" error
+          if (event.error !== 'interrupted') {
+            console.warn('TTS error (non-critical):', event.error);
+          }
+        };
+
+        // Ensure voices are loaded before speaking
+        if (window.speechSynthesis.getVoices().length === 0) {
+          window.speechSynthesis.addEventListener('voiceschanged', () => {
+            window.speechSynthesis.speak(utterance);
+          }, { once: true });
+        } else {
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 100);
     }
   };
 

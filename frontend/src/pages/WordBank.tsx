@@ -175,38 +175,47 @@ export default function WordBank() {
 
   const handleSpeak = (word: string, wordId: string) => {
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(word);
-      const hasHiragana = /[\u3040-\u309F]/.test(word);
-      const hasKatakana = /[\u30A0-\u30FF]/.test(word);
-      const isJapanese = hasHiragana || hasKatakana;
-
-      utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
-      utterance.rate = 0.8;
-
-      utterance.onstart = () => {
-        setSpeakingWords(new Set([wordId]));
-      };
-
-      utterance.onend = () => {
-        setSpeakingWords(new Set());
-      };
-
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
-        setSpeakingWords(new Set());
-        toast.error('Unable to play audio for this word');
-      };
-
-      // Ensure voices are loaded before speaking
-      if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.addEventListener('voiceschanged', () => {
-          window.speechSynthesis.speak(utterance);
-        }, { once: true });
-      } else {
-        window.speechSynthesis.speak(utterance);
+      // Cancel any ongoing speech
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
       }
+
+      // Add a small delay to ensure cancel completes
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(word);
+        const hasHiragana = /[\u3040-\u309F]/.test(word);
+        const hasKatakana = /[\u30A0-\u30FF]/.test(word);
+        const isJapanese = hasHiragana || hasKatakana;
+
+        utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+        utterance.rate = 0.8;
+
+        utterance.onstart = () => {
+          setSpeakingWords(new Set([wordId]));
+        };
+
+        utterance.onend = () => {
+          setSpeakingWords(new Set());
+        };
+
+        utterance.onerror = (event) => {
+          console.error('Speech synthesis error:', event);
+          setSpeakingWords(new Set());
+          // Only show error if it's not an "interrupted" error (which is expected when cancelling)
+          if (event.error !== 'interrupted') {
+            toast.error('Unable to play audio for this word');
+          }
+        };
+
+        // Ensure voices are loaded before speaking
+        if (window.speechSynthesis.getVoices().length === 0) {
+          window.speechSynthesis.addEventListener('voiceschanged', () => {
+            window.speechSynthesis.speak(utterance);
+          }, { once: true });
+        } else {
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 100);
     }
   };
 

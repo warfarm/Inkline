@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
 import type { WordBankEntry } from '@/types';
 
 interface FlashcardPracticeProps {
@@ -70,31 +71,41 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
 
   const handleSpeak = () => {
     if ('speechSynthesis' in window && currentWord) {
-      window.speechSynthesis.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(currentWord.word);
-      const hasHiragana = /[\u3040-\u309F]/.test(currentWord.word);
-      const hasKatakana = /[\u30A0-\u30FF]/.test(currentWord.word);
-      const isJapanese = hasHiragana || hasKatakana;
-
-      utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
-      utterance.rate = 0.8;
-
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
-        setIsSpeaking(false);
-      };
-
-      // Ensure voices are loaded before speaking
-      if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.addEventListener('voiceschanged', () => {
-          window.speechSynthesis.speak(utterance);
-        }, { once: true });
-      } else {
-        window.speechSynthesis.speak(utterance);
+      // Cancel any ongoing speech
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
       }
+
+      // Add a small delay to ensure cancel completes
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(currentWord.word);
+        const hasHiragana = /[\u3040-\u309F]/.test(currentWord.word);
+        const hasKatakana = /[\u30A0-\u30FF]/.test(currentWord.word);
+        const isJapanese = hasHiragana || hasKatakana;
+
+        utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+        utterance.rate = 0.8;
+
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = (event) => {
+          console.error('Speech synthesis error:', event);
+          setIsSpeaking(false);
+          // Only show error if it's not an "interrupted" error (which is expected when cancelling)
+          if (event.error !== 'interrupted') {
+            toast.error('Unable to play audio for this word');
+          }
+        };
+
+        // Ensure voices are loaded before speaking
+        if (window.speechSynthesis.getVoices().length === 0) {
+          window.speechSynthesis.addEventListener('voiceschanged', () => {
+            window.speechSynthesis.speak(utterance);
+          }, { once: true });
+        } else {
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 100);
     }
   };
 
