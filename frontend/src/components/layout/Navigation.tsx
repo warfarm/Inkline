@@ -17,13 +17,13 @@ export function Navigation() {
     setIsSigningOut(true);
     try {
       await signOut();
+      // Always navigate to login, signOut handles errors internally
       navigate('/login');
     } catch (error) {
+      // This should rarely happen now, but handle it gracefully
       console.error('Error signing out:', error);
-      toast.error('Failed to sign out', {
-        description: 'Please try again',
-        duration: 3000,
-      });
+      // Still navigate to login even if there's an error
+      navigate('/login');
     } finally {
       setIsSigningOut(false);
     }
