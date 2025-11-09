@@ -52,6 +52,7 @@ export interface WordBankEntry {
   times_reviewed: number;
   first_seen_at: string;
   last_reviewed_at?: string;
+  user_notes?: string;
 }
 
 export interface ReadingHistory {
@@ -77,5 +78,13 @@ export interface DictionaryResult {
   word: string;
   reading: string;
   definition: string;
-  example?: string;
+  definitions?: Array<{
+    meaning: string;
+    partOfSpeech?: string;
+  }>;
+  examples?: string[];
+  grammarNotes?: string;
+  formalityLevel?: 'casual' | 'polite' | 'formal';
+  usageNotes?: string;
+  example?: string; // Kept for backwards compatibility
 }

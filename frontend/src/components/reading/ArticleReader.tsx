@@ -215,22 +215,24 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   };
 
   const handleWordHover = (word: string, event: React.MouseEvent) => {
-    // Clear any pending hide timeout
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
+    // If already showing this exact word, just keep it visible
+    if (selectedWord?.word === word) {
+      // Clear any pending hide timeout to keep it visible
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
+      return;
     }
 
-    // Clear any pending show timeout
+    // Clear any pending show timeout from previous hover
     if (showTimeoutRef.current) {
       clearTimeout(showTimeoutRef.current);
       showTimeoutRef.current = null;
     }
 
-    // Don't switch popup if already showing the same word
-    if (selectedWord?.word === word) {
-      return;
-    }
+    // If a popup is already visible for a different word, require a longer hover
+    const delay = selectedWord ? 400 : 300;
 
     // Close phrase popup when opening word popup (mutual exclusion)
     setSelectedPhrase(null);
@@ -240,6 +242,12 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
 
     // Add delay before showing popup to prevent rapid switching
     showTimeoutRef.current = window.setTimeout(() => {
+      // Clear any pending hide timeout
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
+
       setSelectedWord({
         word,
         position: {
@@ -247,7 +255,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           y: rect.bottom + window.scrollY + 8,
         },
       });
-    }, 200);
+    }, delay);
   };
 
   const handleWordLeave = () => {
@@ -257,11 +265,11 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       showTimeoutRef.current = null;
     }
 
-    // Delay hiding to allow hovering over the popup
+    // Longer delay before hiding to allow moving to popup or nearby words
     hoverTimeoutRef.current = window.setTimeout(() => {
       setSelectedWord(null);
       setDictionaryResult(null);
-    }, 300);
+    }, 500);
   };
 
   const handlePopupMouseEnter = () => {
@@ -283,7 +291,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     setDictionaryResult(null);
   };
 
-  const handleSaveWord = async () => {
+  const handleSaveWord = async (userNotes?: string) => {
     if (!dictionaryResult || !user) return;
 
     setSaving(true);
@@ -295,6 +303,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         definition: dictionaryResult.definition,
         reading: dictionaryResult.reading,
         example_sentence: dictionaryResult.example,
+        user_notes: userNotes,
       });
 
       await supabase.from('word_interactions').insert({
@@ -389,7 +398,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     }
   };
 
-  const handleSavePhrase = async () => {
+  const handleSavePhrase = async (userNotes?: string) => {
     if (!phraseResult || !user) return;
 
     setSaving(true);
@@ -401,6 +410,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         definition: phraseResult.definition,
         reading: phraseResult.reading,
         example_sentence: phraseResult.example,
+        user_notes: userNotes,
       });
 
       await supabase.from('word_interactions').insert({

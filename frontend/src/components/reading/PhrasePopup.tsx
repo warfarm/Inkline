@@ -8,7 +8,7 @@ interface PhrasePopupProps {
   result: DictionaryResult | null;
   position: { x: number; y: number };
   loading: boolean;
-  onSave: () => void;
+  onSave: (userNotes?: string) => void;
   onClose: () => void;
   saving: boolean;
 }
@@ -104,7 +104,7 @@ export function PhrasePopup({
             )}
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={onSave} disabled={saving} className="flex-1">
+              <Button onClick={() => onSave()} disabled={saving} className="flex-1">
                 {saving ? 'Saving...' : 'Save to Word Bank'}
               </Button>
               <Button onClick={onClose} variant="outline">
