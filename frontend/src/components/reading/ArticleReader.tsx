@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useWordPopupMode } from '@/hooks/useWordPopupMode';
 import { supabase } from '@/lib/supabase';
 import { lookupJapanese } from '@/lib/dictionaries/jisho';
 import { lookupChinese } from '@/lib/dictionaries/chinese';
@@ -16,10 +17,12 @@ interface ArticleReaderProps {
 
 export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const { user } = useAuth();
+  const { mode: popupMode } = useWordPopupMode();
   const startTimeRef = useRef<number>(Date.now());
   const contentRef = useRef<HTMLDivElement>(null);
   const lastWordClickRef = useRef<{ word: string; timestamp: number } | null>(null);
   const hoverTimeoutRef = useRef<number | null>(null);
+  const showTimeoutRef = useRef<number | null>(null);
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
     position: { x: number; y: number };
@@ -189,11 +192,12 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     }
   };
 
-  const handleWordHover = (word: string, event: React.MouseEvent) => {
-    // Clear any pending hide timeout
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
+  const handleWordClick = (word: string, event: React.MouseEvent) => {
+    event.preventDefault();
+
+    // Don't switch popup if already showing the same word
+    if (selectedWord?.word === word) {
+      return;
     }
 
     // Close phrase popup when opening word popup (mutual exclusion)
@@ -210,9 +214,51 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     });
   };
 
+  const handleWordHover = (word: string, event: React.MouseEvent) => {
+    // Clear any pending hide timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+
+    // Clear any pending show timeout
+    if (showTimeoutRef.current) {
+      clearTimeout(showTimeoutRef.current);
+      showTimeoutRef.current = null;
+    }
+
+    // Don't switch popup if already showing the same word
+    if (selectedWord?.word === word) {
+      return;
+    }
+
+    // Close phrase popup when opening word popup (mutual exclusion)
+    setSelectedPhrase(null);
+    setPhraseResult(null);
+
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+
+    // Add delay before showing popup to prevent rapid switching
+    showTimeoutRef.current = window.setTimeout(() => {
+      setSelectedWord({
+        word,
+        position: {
+          x: rect.left,
+          y: rect.bottom + window.scrollY + 8,
+        },
+      });
+    }, 200);
+  };
+
   const handleWordLeave = () => {
+    // Clear any pending show timeout
+    if (showTimeoutRef.current) {
+      clearTimeout(showTimeoutRef.current);
+      showTimeoutRef.current = null;
+    }
+
     // Delay hiding to allow hovering over the popup
-    hoverTimeoutRef.current = setTimeout(() => {
+    hoverTimeoutRef.current = window.setTimeout(() => {
       setSelectedWord(null);
       setDictionaryResult(null);
     }, 300);
@@ -223,6 +269,11 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
+    }
+    // Clear any pending show timeout
+    if (showTimeoutRef.current) {
+      clearTimeout(showTimeoutRef.current);
+      showTimeoutRef.current = null;
     }
   };
 
@@ -406,14 +457,19 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
               key={index}
               role="button"
               tabIndex={0}
-              aria-label={`Hover to see definition of ${wordData.text}`}
+              aria-label={`${popupMode === 'hover' ? 'Hover' : 'Click'} to see definition of ${wordData.text}`}
               className="cursor-pointer hover:underline hover:decoration-dotted hover:decoration-blue-500 hover:underline-offset-4 px-0.5 transition-all focus:outline-2 focus:outline-blue-600 focus:rounded"
-              onMouseEnter={(e) => handleWordHover(wordData.text, e)}
-              onMouseLeave={handleWordLeave}
+              onClick={popupMode === 'click' ? (e) => handleWordClick(wordData.text, e) : undefined}
+              onMouseEnter={popupMode === 'hover' ? (e) => handleWordHover(wordData.text, e) : undefined}
+              onMouseLeave={popupMode === 'hover' ? handleWordLeave : undefined}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  handleWordHover(wordData.text, e as any);
+                  if (popupMode === 'click') {
+                    handleWordClick(wordData.text, e as any);
+                  } else {
+                    handleWordHover(wordData.text, e as any);
+                  }
                 }
               }}
             >
@@ -445,8 +501,8 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           onSave={handleSaveWord}
           onClose={handleClosePopup}
           saving={saving}
-          onMouseEnter={handlePopupMouseEnter}
-          onMouseLeave={handlePopupMouseLeave}
+          onMouseEnter={popupMode === 'hover' ? handlePopupMouseEnter : undefined}
+          onMouseLeave={popupMode === 'hover' ? handlePopupMouseLeave : undefined}
         />
       )}
 

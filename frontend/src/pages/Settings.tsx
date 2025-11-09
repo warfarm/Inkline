@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useWordPopupMode } from '@/hooks/useWordPopupMode';
+import { useWordBankPanelPosition } from '@/hooks/useWordBankPanelPosition';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,6 +50,8 @@ const TOPIC_OPTIONS = [
 export default function Settings() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
+  const { mode: popupMode, setMode: setPopupMode } = useWordPopupMode();
+  const { position: panelPosition, setPosition: setPanelPosition } = useWordBankPanelPosition();
   const [loading, setLoading] = useState(false);
 
   const [displayName, setDisplayName] = useState('');
@@ -259,6 +263,138 @@ export default function Settings() {
                 value={customInterest}
                 onChange={(e) => setCustomInterest(e.target.value)}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Reading Preferences</CardTitle>
+            <CardDescription>
+              Customize how you interact with words while reading
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Word Definition Display</Label>
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPopupMode('hover')}
+                  className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
+                    popupMode === 'hover'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">Hover (Default)</div>
+                    <div className="text-sm text-muted-foreground">
+                      Definitions appear when you hover over words
+                    </div>
+                  </div>
+                  <div
+                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                      popupMode === 'hover'
+                        ? 'border-blue-600 bg-blue-600'
+                        : 'border-gray-400 bg-white'
+                    }`}
+                  >
+                    {popupMode === 'hover' && (
+                      <div className="h-2 w-2 rounded-full bg-white" />
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPopupMode('click')}
+                  className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
+                    popupMode === 'click'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">Click</div>
+                    <div className="text-sm text-muted-foreground">
+                      Definitions appear when you click on words
+                    </div>
+                  </div>
+                  <div
+                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                      popupMode === 'click'
+                        ? 'border-blue-600 bg-blue-600'
+                        : 'border-gray-400 bg-white'
+                    }`}
+                  >
+                    {popupMode === 'click' && (
+                      <div className="h-2 w-2 rounded-full bg-white" />
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 mt-4">
+              <Label className="text-base font-semibold">Word Bank Panel Position</Label>
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPanelPosition('right')}
+                  className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
+                    panelPosition === 'right'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">Right Side (Default)</div>
+                    <div className="text-sm text-muted-foreground">
+                      Word bank appears on the right side of the screen
+                    </div>
+                  </div>
+                  <div
+                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                      panelPosition === 'right'
+                        ? 'border-blue-600 bg-blue-600'
+                        : 'border-gray-400 bg-white'
+                    }`}
+                  >
+                    {panelPosition === 'right' && (
+                      <div className="h-2 w-2 rounded-full bg-white" />
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPanelPosition('left')}
+                  className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
+                    panelPosition === 'left'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">Left Side</div>
+                    <div className="text-sm text-muted-foreground">
+                      Word bank appears on the left side of the screen
+                    </div>
+                  </div>
+                  <div
+                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                      panelPosition === 'left'
+                        ? 'border-blue-600 bg-blue-600'
+                        : 'border-gray-400 bg-white'
+                    }`}
+                  >
+                    {panelPosition === 'left' && (
+                      <div className="h-2 w-2 rounded-full bg-white" />
+                    )}
+                  </div>
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>
