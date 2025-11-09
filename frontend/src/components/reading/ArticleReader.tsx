@@ -17,7 +17,7 @@ interface ArticleReaderProps {
 }
 
 export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { mode: popupMode } = useWordPopupMode();
   const startTimeRef = useRef<number>(Date.now());
   const contentRef = useRef<HTMLDivElement>(null);
@@ -610,6 +610,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           saving={saving}
           onMouseEnter={handlePopupMouseEnter}
           onMouseLeave={handlePopupMouseLeave}
+          profile={profile}
         />
       )}
 
@@ -622,6 +623,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           onSave={handleSavePhrase}
           onClose={handleClosePhrasePopup}
           saving={saving}
+          profile={profile}
         />
       )}
 

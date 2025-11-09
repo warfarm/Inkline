@@ -4,13 +4,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import type { WordBankEntry } from '@/types';
 
+interface Profile {
+  target_language?: string;
+}
+
 interface FlashcardPracticeProps {
   words: WordBankEntry[];
   onExit: () => void;
   onMarkMastered: (wordId: string) => void;
+  profile?: Profile | null;
 }
 
-export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPracticeProps) {
+export function FlashcardPractice({ words, onExit, onMarkMastered, profile }: FlashcardPracticeProps) {
   const [shuffledWords, setShuffledWords] = useState<WordBankEntry[]>(words);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -79,11 +84,22 @@ export function FlashcardPractice({ words, onExit, onMarkMastered }: FlashcardPr
       // Add a small delay to ensure cancel completes
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(currentWord.word);
-        const hasHiragana = /[\u3040-\u309F]/.test(currentWord.word);
-        const hasKatakana = /[\u30A0-\u30FF]/.test(currentWord.word);
-        const isJapanese = hasHiragana || hasKatakana;
 
-        utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+        // Use user's target language preference, with fallback to character detection
+        let language = 'zh-CN'; // Default to Chinese
+        if (profile?.target_language === 'ja') {
+          language = 'ja-JP';
+        } else if (profile?.target_language === 'zh') {
+          language = 'zh-CN';
+        } else {
+          // Fallback: detect language from characters if no profile setting
+          const hasHiragana = /[\u3040-\u309F]/.test(currentWord.word);
+          const hasKatakana = /[\u30A0-\u30FF]/.test(currentWord.word);
+          const isJapanese = hasHiragana || hasKatakana;
+          language = isJapanese ? 'ja-JP' : 'zh-CN';
+        }
+
+        utterance.lang = language;
         utterance.rate = 0.8;
 
         utterance.onstart = () => setIsSpeaking(true);

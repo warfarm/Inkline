@@ -5,6 +5,10 @@ import type { DictionaryResult } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+interface Profile {
+  target_language?: string;
+}
+
 interface WordPopupProps {
   result: DictionaryResult;
   position: { x: number; y: number };
@@ -13,9 +17,10 @@ interface WordPopupProps {
   saving?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  profile?: Profile | null;
 }
 
-export function WordPopup({ result, position, onSave, onClose, saving, onMouseEnter, onMouseLeave }: WordPopupProps) {
+export function WordPopup({ result, position, onSave, onClose, saving, onMouseEnter, onMouseLeave, profile }: WordPopupProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [showMore, setShowMore] = useState(false);
@@ -66,14 +71,21 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(result.word);
 
-        // Set language based on the word (detect if Japanese or Chinese)
-        // Japanese characters are in the range U+3040 to U+30FF (Hiragana and Katakana)
-        // and U+4E00 to U+9FAF (Kanji, shared with Chinese)
-        const hasHiragana = /[\u3040-\u309F]/.test(result.word);
-        const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
-        const isJapanese = hasHiragana || hasKatakana;
+        // Use user's target language preference, with fallback to character detection
+        let language = 'zh-CN'; // Default to Chinese
+        if (profile?.target_language === 'ja') {
+          language = 'ja-JP';
+        } else if (profile?.target_language === 'zh') {
+          language = 'zh-CN';
+        } else {
+          // Fallback: detect language from characters if no profile setting
+          const hasHiragana = /[\u3040-\u309F]/.test(result.word);
+          const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
+          const isJapanese = hasHiragana || hasKatakana;
+          language = isJapanese ? 'ja-JP' : 'zh-CN';
+        }
 
-        utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+        utterance.lang = language;
         utterance.rate = 0.8; // Slightly slower for better clarity
 
         utterance.onstart = () => setIsSpeaking(true);

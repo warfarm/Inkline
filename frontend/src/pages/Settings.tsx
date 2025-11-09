@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWordPopupMode } from '@/hooks/useWordPopupMode';
 import { useWordBankPanelPosition } from '@/hooks/useWordBankPanelPosition';
+import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,11 +48,35 @@ const TOPIC_OPTIONS = [
   'Current Events',
 ];
 
+const THEMES = [
+  {
+    value: 'light',
+    label: 'Light',
+    description: 'Clean and bright theme (default)',
+  },
+  {
+    value: 'dark',
+    label: 'Dark',
+    description: 'Easy on the eyes in low light',
+  },
+  {
+    value: 'sepia',
+    label: 'Sepia',
+    description: 'Warm tones for comfortable reading',
+  },
+  {
+    value: 'night',
+    label: 'Night',
+    description: 'Deep dark theme for nighttime use',
+  },
+] as const;
+
 export default function Settings() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const { mode: popupMode, setMode: setPopupMode } = useWordPopupMode();
   const { position: panelPosition, setPosition: setPanelPosition } = useWordBankPanelPosition();
+  const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(false);
 
   const [displayName, setDisplayName] = useState('');
@@ -151,6 +176,48 @@ export default function Settings() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Enter your name"
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>
+              Choose your preferred color theme
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Label className="text-base font-semibold">Theme</Label>
+            <div className="grid gap-3">
+              {THEMES.map((themeOption) => (
+                <button
+                  key={themeOption.value}
+                  type="button"
+                  onClick={() => setTheme(themeOption.value)}
+                  className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
+                    theme === themeOption.value
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">{themeOption.label}</div>
+                    <div className="text-sm text-muted-foreground">{themeOption.description}</div>
+                  </div>
+                  <div
+                    className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                      theme === themeOption.value
+                        ? 'border-blue-600 bg-blue-600'
+                        : 'border-gray-400 bg-white'
+                    }`}
+                  >
+                    {theme === themeOption.value && (
+                      <div className="h-2 w-2 rounded-full bg-white" />
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           </CardContent>
         </Card>

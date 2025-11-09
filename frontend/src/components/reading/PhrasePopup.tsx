@@ -3,6 +3,10 @@ import type { DictionaryResult } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+interface Profile {
+  target_language?: string;
+}
+
 interface PhrasePopupProps {
   phrase: string;
   result: DictionaryResult | null;
@@ -11,6 +15,7 @@ interface PhrasePopupProps {
   onSave: (userNotes?: string) => void;
   onClose: () => void;
   saving: boolean;
+  profile?: Profile | null;
 }
 
 export function PhrasePopup({
@@ -21,6 +26,7 @@ export function PhrasePopup({
   onSave,
   onClose,
   saving,
+  profile,
 }: PhrasePopupProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
@@ -70,12 +76,21 @@ export function PhrasePopup({
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(result.word);
 
-        // Set language based on the word
-        const hasHiragana = /[\u3040-\u309F]/.test(result.word);
-        const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
-        const isJapanese = hasHiragana || hasKatakana;
+        // Use user's target language preference, with fallback to character detection
+        let language = 'zh-CN'; // Default to Chinese
+        if (profile?.target_language === 'ja') {
+          language = 'ja-JP';
+        } else if (profile?.target_language === 'zh') {
+          language = 'zh-CN';
+        } else {
+          // Fallback: detect language from characters if no profile setting
+          const hasHiragana = /[\u3040-\u309F]/.test(result.word);
+          const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
+          const isJapanese = hasHiragana || hasKatakana;
+          language = isJapanese ? 'ja-JP' : 'zh-CN';
+        }
 
-        utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+        utterance.lang = language;
         utterance.rate = 0.8;
 
         utterance.onstart = () => setIsSpeaking(true);
