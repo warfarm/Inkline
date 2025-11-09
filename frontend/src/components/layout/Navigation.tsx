@@ -1,12 +1,33 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export function Navigation() {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   if (!profile) return null;
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out', {
+        description: 'Please try again',
+        duration: 3000,
+      });
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <header className="border-b">
@@ -38,8 +59,13 @@ export function Navigation() {
             </>
           )}
           <span className="text-sm text-muted-foreground">{profile.display_name}</span>
-          <Button variant="outline" size="sm" onClick={signOut}>
-            Sign Out
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+          >
+            {isSigningOut ? 'Signing out...' : 'Sign Out'}
           </Button>
         </nav>
       </div>
