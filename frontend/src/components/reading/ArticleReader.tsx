@@ -296,7 +296,14 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
 
     setSaving(true);
     try {
-      console.log('Saving word with notes:', { word: dictionaryResult.word, userNotes });
+      console.log('Saving word with enhanced data:', {
+        word: dictionaryResult.word,
+        userNotes,
+        grammarNotes: dictionaryResult.grammarNotes,
+        formalityLevel: dictionaryResult.formalityLevel,
+        usageNotes: dictionaryResult.usageNotes,
+        additionalDefinitions: dictionaryResult.definitions
+      });
 
       const { error: insertError } = await supabase.from('word_bank').insert({
         user_id: user.id,
@@ -306,6 +313,10 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         reading: dictionaryResult.reading,
         example_sentence: dictionaryResult.example,
         user_notes: userNotes,
+        grammar_notes: dictionaryResult.grammarNotes,
+        formality_level: dictionaryResult.formalityLevel,
+        usage_notes: dictionaryResult.usageNotes,
+        additional_definitions: dictionaryResult.definitions ? JSON.stringify(dictionaryResult.definitions) : null,
       });
 
       if (insertError) {
@@ -418,6 +429,10 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         reading: phraseResult.reading,
         example_sentence: phraseResult.example,
         user_notes: userNotes,
+        grammar_notes: phraseResult.grammarNotes,
+        formality_level: phraseResult.formalityLevel,
+        usage_notes: phraseResult.usageNotes,
+        additional_definitions: phraseResult.definitions ? JSON.stringify(phraseResult.definitions) : null,
       });
 
       await supabase.from('word_interactions').insert({

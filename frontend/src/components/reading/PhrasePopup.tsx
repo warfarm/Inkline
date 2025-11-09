@@ -24,6 +24,7 @@ export function PhrasePopup({
 }: PhrasePopupProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     if (popupRef.current) {
@@ -58,6 +59,29 @@ export function PhrasePopup({
     }
   }, [position, result, loading]);
 
+  const handleSpeak = () => {
+    if ('speechSynthesis' in window && result) {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(result.word);
+
+      // Set language based on the word
+      const hasHiragana = /[\u3040-\u309F]/.test(result.word);
+      const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
+      const isJapanese = hasHiragana || hasKatakana;
+
+      utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+      utterance.rate = 0.8;
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   return createPortal(
     <>
       {/* Backdrop to close popup on outside click */}
@@ -85,7 +109,19 @@ export function PhrasePopup({
         ) : result ? (
           <div className="space-y-3">
             <div>
-              <div className="text-2xl font-bold mb-1">{result.word}</div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="text-2xl font-bold">{result.word}</div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSpeak}
+                  disabled={isSpeaking}
+                  className="h-8 w-8 p-0"
+                  title="Listen to pronunciation"
+                >
+                  {isSpeaking ? '⏸' : '🔊'}
+                </Button>
+              </div>
               {result.reading && (
                 <div className="text-sm text-muted-foreground mb-2">{result.reading}</div>
               )}

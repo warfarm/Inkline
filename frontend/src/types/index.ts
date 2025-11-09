@@ -53,6 +53,13 @@ export interface WordBankEntry {
   first_seen_at: string;
   last_reviewed_at?: string;
   user_notes?: string;
+  grammar_notes?: string;
+  formality_level?: 'casual' | 'polite' | 'formal';
+  usage_notes?: string;
+  additional_definitions?: Array<{
+    meaning: string;
+    partOfSpeech?: string;
+  }>;
 }
 
 export interface ReadingHistory {

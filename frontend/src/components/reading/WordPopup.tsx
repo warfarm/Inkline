@@ -20,6 +20,7 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [showMore, setShowMore] = useState(false);
   const [userNote, setUserNote] = useState('');
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     if (popupRef.current) {
@@ -54,6 +55,31 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
     }
   }, [position]);
 
+  const handleSpeak = () => {
+    if ('speechSynthesis' in window) {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(result.word);
+
+      // Set language based on the word (detect if Japanese or Chinese)
+      // Japanese characters are in the range U+3040 to U+30FF (Hiragana and Katakana)
+      // and U+4E00 to U+9FAF (Kanji, shared with Chinese)
+      const hasHiragana = /[\u3040-\u309F]/.test(result.word);
+      const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
+      const isJapanese = hasHiragana || hasKatakana;
+
+      utterance.lang = isJapanese ? 'ja-JP' : 'zh-CN';
+      utterance.rate = 0.8; // Slightly slower for better clarity
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   return createPortal(
     <>
       <div
@@ -72,7 +98,19 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
           <CardContent className="p-4 space-y-3">
             {/* Header */}
             <div className="space-y-1">
-              <div className="text-2xl font-bold">{result.word}</div>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold">{result.word}</div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSpeak}
+                  disabled={isSpeaking}
+                  className="h-8 w-8 p-0"
+                  title="Listen to pronunciation"
+                >
+                  {isSpeaking ? '⏸' : '🔊'}
+                </Button>
+              </div>
               {result.reading && (
                 <div className="text-sm text-muted-foreground">{result.reading}</div>
               )}
