@@ -296,7 +296,9 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
 
     setSaving(true);
     try {
-      await supabase.from('word_bank').insert({
+      console.log('Saving word with notes:', { word: dictionaryResult.word, userNotes });
+
+      const { error: insertError } = await supabase.from('word_bank').insert({
         user_id: user.id,
         word: dictionaryResult.word,
         language: article.language,
@@ -305,6 +307,11 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         example_sentence: dictionaryResult.example,
         user_notes: userNotes,
       });
+
+      if (insertError) {
+        console.error('Error inserting word:', insertError);
+        throw insertError;
+      }
 
       await supabase.from('word_interactions').insert({
         user_id: user.id,
@@ -511,8 +518,8 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           onSave={handleSaveWord}
           onClose={handleClosePopup}
           saving={saving}
-          onMouseEnter={popupMode === 'hover' ? handlePopupMouseEnter : undefined}
-          onMouseLeave={popupMode === 'hover' ? handlePopupMouseLeave : undefined}
+          onMouseEnter={handlePopupMouseEnter}
+          onMouseLeave={handlePopupMouseLeave}
         />
       )}
 

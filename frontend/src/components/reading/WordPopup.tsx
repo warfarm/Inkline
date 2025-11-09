@@ -181,7 +181,14 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
 
             {/* Actions */}
             <div className="flex gap-2 pt-2 border-t">
-              <Button onClick={() => onSave(userNote || undefined)} disabled={saving} className="flex-1">
+              <Button
+                onClick={() => {
+                  console.log('Saving with note:', userNote);
+                  onSave(userNote || undefined);
+                }}
+                disabled={saving}
+                className="flex-1"
+              >
                 {saving ? 'Saving...' : 'Save to Word Bank'}
               </Button>
               <Button variant="outline" onClick={onClose}>

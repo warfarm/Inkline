@@ -78,6 +78,7 @@ CREATE TABLE word_bank (
   definition TEXT NOT NULL,
   reading TEXT,
   example_sentence TEXT,
+  user_notes TEXT,
   status TEXT DEFAULT 'learning' CHECK (status IN ('learning', 'mastered')),
   times_reviewed INTEGER DEFAULT 0,
   first_seen_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
