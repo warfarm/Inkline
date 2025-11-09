@@ -344,10 +344,12 @@ export default function WordBank() {
                           size="sm"
                           onClick={() => handleSpeak(word.word, word.id)}
                           disabled={speakingWords.has(word.id)}
-                          className="h-8 w-8 p-0 text-lg"
+                          className="h-8 w-8 p-0 text-lg transition-transform hover:scale-110"
                           title="Listen to pronunciation"
                         >
-                          {speakingWords.has(word.id) ? '⏸' : '🔊'}
+                          <span className="inline-block transition-transform hover:scale-125">
+                            {speakingWords.has(word.id) ? '⏸' : '🔊'}
+                          </span>
                         </Button>
                       </div>
                       {word.reading && (

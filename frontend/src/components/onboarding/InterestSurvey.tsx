@@ -59,7 +59,7 @@ export function InterestSurvey({ onNext }: InterestSurveyProps) {
                 onCheckedChange={() => handleTopicToggle(topic.label)}
               />
               <Label htmlFor={topic.label} className="cursor-pointer font-normal">
-                <span className="mr-2">{topic.icon}</span>
+                <span className="inline-block mr-2 transition-transform hover:scale-125">{topic.icon}</span>
                 {topic.label}
               </Label>
             </div>

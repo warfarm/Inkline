@@ -129,10 +129,12 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
                   size="lg"
                   onClick={handleSpeak}
                   disabled={isSpeaking}
-                  className="h-10 w-10 p-0 text-xl"
+                  className="h-10 w-10 p-0 text-xl transition-transform hover:scale-110"
                   title="Listen to pronunciation"
                 >
-                  {isSpeaking ? '⏸' : '🔊'}
+                  <span className="inline-block transition-transform hover:scale-125">
+                    {isSpeaking ? '⏸' : '🔊'}
+                  </span>
                 </Button>
               </div>
               {result.reading && (

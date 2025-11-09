@@ -153,7 +153,9 @@ export default function Progress() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>📚 Articles Read</CardDescription>
+              <CardDescription>
+                <span className="inline-block transition-transform hover:scale-125">📚</span> Articles Read
+              </CardDescription>
               <CardTitle className="text-4xl">{stats.totalArticlesRead}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -165,7 +167,9 @@ export default function Progress() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>💯 Words Saved</CardDescription>
+              <CardDescription>
+                <span className="inline-block transition-transform hover:scale-125">💯</span> Words Saved
+              </CardDescription>
               <CardTitle className="text-4xl">{stats.totalWordsLearned}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -180,7 +184,7 @@ export default function Progress() {
               <CardDescription>Current Streak</CardDescription>
               <CardTitle className="text-4xl">
                 {stats.currentStreak}
-                <span className="text-2xl ml-1">🔥</span>
+                <span className="inline-block text-2xl ml-1 transition-transform hover:scale-125">🔥</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -192,7 +196,9 @@ export default function Progress() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>⏱️ Time Reading</CardDescription>
+              <CardDescription>
+                <span className="inline-block transition-transform hover:scale-125">⏱️</span> Time Reading
+              </CardDescription>
               <CardTitle className="text-4xl">
                 {stats.totalTimeMinutes}
                 <span className="text-xl ml-1">min</span>
