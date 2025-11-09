@@ -24,6 +24,8 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const lastWordClickRef = useRef<{ word: string; timestamp: number } | null>(null);
   const hoverTimeoutRef = useRef<number | null>(null);
   const showTimeoutRef = useRef<number | null>(null);
+  const loadingRef = useRef<boolean>(false);
+  const hasResultRef = useRef<boolean>(false);
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
     position: { x: number; y: number };
@@ -107,6 +109,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         // Close word popup when opening phrase popup (mutual exclusion)
         setSelectedWord(null);
         setDictionaryResult(null);
+        hasResultRef.current = false;
 
         setSelectedPhrase({
           phrase: selectedText,
@@ -178,7 +181,9 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
 
   const fetchDefinition = async (word: string) => {
     setLoading(true);
+    loadingRef.current = true;
     setDictionaryResult(null);
+    hasResultRef.current = false;
 
     try {
       const result =
@@ -189,12 +194,14 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       // If no result, create a "not found" result
       if (result) {
         setDictionaryResult(result);
+        hasResultRef.current = true;
       } else {
         setDictionaryResult({
           word,
           reading: '',
           definition: 'No definition found for this word. Try selecting a different word or phrase.',
         });
+        hasResultRef.current = true;
       }
 
       if (user) {
@@ -212,8 +219,10 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         reading: '',
         definition: 'Error loading definition. Please try again.',
       });
+      hasResultRef.current = true;
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   };
 
@@ -292,6 +301,12 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
 
     // Longer delay before hiding to allow moving to popup or nearby words
     hoverTimeoutRef.current = window.setTimeout(() => {
+      // Don't hide if currently loading or if we have a result
+      // Check refs to get the current state when timeout fires, not when it was set
+      if (loadingRef.current || hasResultRef.current) {
+        return; // Keep the popup visible
+      }
+
       setSelectedWord(null);
       setDictionaryResult(null);
     }, 500);
@@ -314,6 +329,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     // Hide popup when leaving it
     setSelectedWord(null);
     setDictionaryResult(null);
+    hasResultRef.current = false;
   };
 
   const handleSaveWord = async (userNotes?: string) => {
@@ -359,6 +375,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       setWordsSaved((prev) => prev + 1);
       setSelectedWord(null);
       setDictionaryResult(null);
+      hasResultRef.current = false;
       toast.success('Added to Word Bank', {
         description: `${dictionaryResult.word} saved successfully`,
         duration: 3000,
@@ -371,6 +388,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         });
         setSelectedWord(null);
         setDictionaryResult(null);
+        hasResultRef.current = false;
       } else {
         console.error('Error saving word:', error);
         toast.error('Failed to save word', {
@@ -386,6 +404,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const handleClosePopup = () => {
     setSelectedWord(null);
     setDictionaryResult(null);
+    hasResultRef.current = false;
   };
 
   const handleClosePhrasePopup = () => {
