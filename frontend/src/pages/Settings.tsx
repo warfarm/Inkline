@@ -155,7 +155,7 @@ export default function Settings() {
     <div className="min-h-screen bg-muted/30">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur shadow-sm">
         <div className="container mx-auto max-w-4xl flex items-center justify-between px-4 py-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/home')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             ← Back
           </Button>
           <h1 className="text-lg font-semibold">Settings</h1>
@@ -495,7 +495,7 @@ export default function Settings() {
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => navigate('/home')}>
+          <Button variant="outline" onClick={() => navigate(-1)}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={loading}>

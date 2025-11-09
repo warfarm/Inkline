@@ -1,4 +1,5 @@
 import { useTheme } from '@/hooks/useTheme';
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -31,6 +32,16 @@ const THEMES: Array<{
 
 export default function SettingsTest() {
   const { theme, setTheme } = useTheme();
+  const [documentClasses, setDocumentClasses] = useState('');
+
+  // Update document classes display when theme changes
+  useEffect(() => {
+    // Use a small delay to ensure the DOM has been updated
+    const timer = setTimeout(() => {
+      setDocumentClasses(document.documentElement.className);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [theme]);
 
   // Debug logging
   console.log('Current theme:', theme, 'Type:', typeof theme);
@@ -103,7 +114,7 @@ export default function SettingsTest() {
             <div className="font-mono text-sm space-y-1">
               <div>Current Theme: {theme}</div>
               <div>Type: {typeof theme}</div>
-              <div>Document Classes: {document.documentElement.className}</div>
+              <div>Document Classes: {documentClasses}</div>
             </div>
           </CardContent>
         </Card>

@@ -123,9 +123,9 @@ export default function ArticleView() {
       {/* Word Bank Side Panel */}
       {showWordBank && (
         <div
-          className={`fixed top-0 ${panelPosition === 'right' ? 'right-0 border-l' : 'left-0 border-r'} h-full w-80 bg-card shadow-xl overflow-y-auto z-50 transition-transform duration-300`}
+          className={`fixed top-0 ${panelPosition === 'right' ? 'right-0 border-l' : 'left-0 border-r'} h-full w-80 bg-card shadow-xl overflow-y-auto z-[60] transition-transform duration-300`}
         >
-          <div className="p-4 border-b sticky top-0 bg-card z-10">
+          <div className="p-4 border-b sticky top-0 bg-card z-[70]">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-lg">My Word Bank</h2>
               <Button variant="ghost" size="sm" onClick={() => setShowWordBank(false)}>
