@@ -127,7 +127,7 @@ export function PhrasePopup({
 
       <div
         ref={popupRef}
-        className="fixed max-w-md max-sm:left-0 max-sm:right-0 max-sm:bottom-0 max-sm:max-w-full rounded-lg max-sm:rounded-t-lg max-sm:rounded-b-none border-2 border-primary/20 bg-white p-4 shadow-2xl"
+        className="fixed max-w-md max-sm:left-0 max-sm:right-0 max-sm:bottom-0 max-sm:max-w-full rounded-lg max-sm:rounded-t-lg max-sm:rounded-b-none border-2 border-primary/20 bg-card p-4 shadow-2xl"
         style={{
           top: adjustedPosition.y,
           left: adjustedPosition.x,

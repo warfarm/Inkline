@@ -119,13 +119,13 @@ export default function ArticleView() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa] relative">
+    <div className="min-h-screen bg-background relative">
       {/* Word Bank Side Panel */}
       {showWordBank && (
         <div
-          className={`fixed top-0 ${panelPosition === 'right' ? 'right-0 border-l' : 'left-0 border-r'} h-full w-80 bg-white shadow-xl overflow-y-auto z-50 transition-transform duration-300`}
+          className={`fixed top-0 ${panelPosition === 'right' ? 'right-0 border-l' : 'left-0 border-r'} h-full w-80 bg-card shadow-xl overflow-y-auto z-50 transition-transform duration-300`}
         >
-          <div className="p-4 border-b sticky top-0 bg-white z-10">
+          <div className="p-4 border-b sticky top-0 bg-card z-10">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-lg">My Word Bank</h2>
               <Button variant="ghost" size="sm" onClick={() => setShowWordBank(false)}>
@@ -178,7 +178,7 @@ export default function ArticleView() {
                         {/* Primary Definition */}
                         <div className="text-xs">
                           {word.formality_level && (
-                            <span className="inline-block px-1.5 py-0.5 text-xs rounded bg-gray-100 text-gray-700 mr-1 mb-1">
+                            <span className="inline-block px-1.5 py-0.5 text-xs rounded bg-muted text-muted-foreground mr-1 mb-1">
                               {word.formality_level}
                             </span>
                           )}
@@ -262,7 +262,7 @@ export default function ArticleView() {
             )}
           </div>
 
-          <div className="p-4 border-t sticky bottom-0 bg-white">
+          <div className="p-4 border-t sticky bottom-0 bg-card">
             <Button variant="outline" onClick={() => navigate('/word-bank')} className="w-full text-sm">
               View Full Word Bank
             </Button>
@@ -270,7 +270,7 @@ export default function ArticleView() {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur shadow-sm">
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur shadow-sm">
         <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="text-sm sm:text-base">
             ← Back

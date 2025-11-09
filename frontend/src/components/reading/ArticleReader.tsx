@@ -628,15 +628,15 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       )}
 
       {/* Progress Bar - Fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/98 backdrop-blur border-t border-gray-200 shadow-lg" style={{ zIndex: 50 }}>
+      <div className="fixed bottom-0 left-0 right-0 bg-background/98 backdrop-blur border-t shadow-lg" style={{ zIndex: 50 }}>
         <div className="container mx-auto max-w-4xl px-3 sm:px-4 py-2 sm:py-3">
-          <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-2">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">
             <span className="font-medium">Progress: {scrollProgress}%</span>
             <span className="font-medium">Time: {Math.floor(timeSpent / 60)}m {String(timeSpent % 60).padStart(2, '0')}s</span>
           </div>
-          <div className="w-full h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 sm:h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-600 transition-all duration-300 ease-out"
+              className="h-full bg-primary transition-all duration-300 ease-out"
               style={{ width: `${scrollProgress}%` }}
             />
           </div>

@@ -47,25 +47,25 @@
   }
 
   .sepia {
-    --background: 38 40% 92%;
-    --foreground: 30 25% 15%;
-    --card: 40 35% 88%;
-    --card-foreground: 30 25% 15%;
-    --popover: 40 35% 88%;
-    --popover-foreground: 30 25% 15%;
-    --primary: 30 40% 25%;
+    --background: 35 25% 82%;
+    --foreground: 30 25% 12%;
+    --card: 38 22% 76%;
+    --card-foreground: 30 25% 12%;
+    --popover: 38 22% 76%;
+    --popover-foreground: 30 25% 12%;
+    --primary: 30 40% 20%;
     --primary-foreground: 40 50% 95%;
-    --secondary: 38 30% 82%;
-    --secondary-foreground: 30 25% 15%;
-    --muted: 38 30% 82%;
-    --muted-foreground: 30 15% 40%;
-    --accent: 38 30% 82%;
-    --accent-foreground: 30 25% 15%;
-    --destructive: 0 70% 50%;
+    --secondary: 35 20% 70%;
+    --secondary-foreground: 30 25% 12%;
+    --muted: 35 20% 70%;
+    --muted-foreground: 30 15% 35%;
+    --accent: 35 20% 70%;
+    --accent-foreground: 30 25% 12%;
+    --destructive: 0 65% 45%;
     --destructive-foreground: 40 50% 95%;
-    --border: 38 25% 75%;
-    --input: 38 25% 75%;
-    --ring: 30 40% 25%;
+    --border: 35 18% 62%;
+    --input: 35 18% 62%;
+    --ring: 30 40% 20%;
   }
 
   .night {

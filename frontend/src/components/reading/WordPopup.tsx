@@ -127,10 +127,10 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
       >
         {/* Pointer arrow */}
         <div
-          className="absolute -top-2 left-4 w-4 h-4 bg-white border-l-2 border-t-2 border-primary/20 transform rotate-45 max-sm:hidden"
+          className="absolute -top-2 left-4 w-4 h-4 bg-card border-l-2 border-t-2 border-primary/20 transform rotate-45 max-sm:hidden"
           style={{ zIndex: 10002 }}
         />
-        <Card className="w-96 max-w-[90vw] max-sm:w-full max-sm:rounded-t-lg max-sm:rounded-b-none shadow-2xl border-2 border-primary/20 bg-white max-h-[80vh] overflow-y-auto animate-in fade-in duration-150">
+        <Card className="w-96 max-w-[90vw] max-sm:w-full max-sm:rounded-t-lg max-sm:rounded-b-none shadow-2xl border-2 border-primary/20 max-h-[80vh] overflow-y-auto animate-in fade-in duration-150">
           <CardContent className="p-4 space-y-3">
             {/* Header */}
             <div className="space-y-1">
@@ -165,7 +165,7 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
             {/* Primary Definition */}
             <div className="text-sm">
               {result.formalityLevel && (
-                <span className="inline-block px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700 mr-2 mb-1">
+                <span className="inline-block px-2 py-0.5 text-xs rounded bg-muted text-muted-foreground mr-2 mb-1">
                   {result.formalityLevel}
                 </span>
               )}

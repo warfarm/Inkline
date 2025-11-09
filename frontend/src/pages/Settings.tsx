@@ -149,7 +149,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur shadow-sm">
+      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur shadow-sm">
         <div className="container mx-auto max-w-4xl flex items-center justify-between px-4 py-4">
           <Button variant="ghost" size="sm" onClick={() => navigate('/home')}>
             ← Back
@@ -197,8 +197,8 @@ export default function Settings() {
                   onClick={() => setTheme(themeOption.value)}
                   className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
                     theme === themeOption.value
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
                   }`}
                 >
                   <div className="flex-1">
@@ -208,12 +208,12 @@ export default function Settings() {
                   <div
                     className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
                       theme === themeOption.value
-                        ? 'border-blue-600 bg-blue-600'
-                        : 'border-gray-400 bg-white'
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground bg-background'
                     }`}
                   >
                     {theme === themeOption.value && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
+                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                     )}
                   </div>
                 </button>
@@ -240,8 +240,8 @@ export default function Settings() {
                     onClick={() => setSelectedLanguage(lang.value)}
                     className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
                       selectedLanguage === lang.value
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-300 hover:border-blue-400'
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
                     }`}
                   >
                     <div className="flex-1">
@@ -250,12 +250,12 @@ export default function Settings() {
                     <div
                       className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
                         selectedLanguage === lang.value
-                          ? 'border-blue-600 bg-blue-600'
-                          : 'border-gray-400 bg-white'
+                          ? 'border-primary bg-primary'
+                          : 'border-muted-foreground bg-background'
                       }`}
                     >
                       {selectedLanguage === lang.value && (
-                        <div className="h-2 w-2 rounded-full bg-white" />
+                        <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                       )}
                     </div>
                   </button>
@@ -273,8 +273,8 @@ export default function Settings() {
                     onClick={() => setSelectedLevel(level.value)}
                     className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
                       selectedLevel === level.value
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-300 hover:border-blue-400'
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
                     }`}
                   >
                     <div className="flex-1">
@@ -284,12 +284,12 @@ export default function Settings() {
                     <div
                       className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
                         selectedLevel === level.value
-                          ? 'border-blue-600 bg-blue-600'
-                          : 'border-gray-400 bg-white'
+                          ? 'border-primary bg-primary'
+                          : 'border-muted-foreground bg-background'
                       }`}
                     >
                       {selectedLevel === level.value && (
-                        <div className="h-2 w-2 rounded-full bg-white" />
+                        <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                       )}
                     </div>
                   </button>
@@ -350,8 +350,8 @@ export default function Settings() {
                   onClick={() => setPopupMode('hover')}
                   className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
                     popupMode === 'hover'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
                   }`}
                 >
                   <div className="flex-1">
@@ -363,12 +363,12 @@ export default function Settings() {
                   <div
                     className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
                       popupMode === 'hover'
-                        ? 'border-blue-600 bg-blue-600'
-                        : 'border-gray-400 bg-white'
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground bg-background'
                     }`}
                   >
                     {popupMode === 'hover' && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
+                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                     )}
                   </div>
                 </button>
@@ -378,8 +378,8 @@ export default function Settings() {
                   onClick={() => setPopupMode('click')}
                   className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
                     popupMode === 'click'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
                   }`}
                 >
                   <div className="flex-1">
@@ -391,12 +391,12 @@ export default function Settings() {
                   <div
                     className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
                       popupMode === 'click'
-                        ? 'border-blue-600 bg-blue-600'
-                        : 'border-gray-400 bg-white'
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground bg-background'
                     }`}
                   >
                     {popupMode === 'click' && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
+                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                     )}
                   </div>
                 </button>
@@ -411,8 +411,8 @@ export default function Settings() {
                   onClick={() => setPanelPosition('right')}
                   className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
                     panelPosition === 'right'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
                   }`}
                 >
                   <div className="flex-1">
@@ -424,12 +424,12 @@ export default function Settings() {
                   <div
                     className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
                       panelPosition === 'right'
-                        ? 'border-blue-600 bg-blue-600'
-                        : 'border-gray-400 bg-white'
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground bg-background'
                     }`}
                   >
                     {panelPosition === 'right' && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
+                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                     )}
                   </div>
                 </button>
@@ -439,8 +439,8 @@ export default function Settings() {
                   onClick={() => setPanelPosition('left')}
                   className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
                     panelPosition === 'left'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
                   }`}
                 >
                   <div className="flex-1">
@@ -452,12 +452,12 @@ export default function Settings() {
                   <div
                     className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
                       panelPosition === 'left'
-                        ? 'border-blue-600 bg-blue-600'
-                        : 'border-gray-400 bg-white'
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground bg-background'
                     }`}
                   >
                     {panelPosition === 'left' && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
+                      <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                     )}
                   </div>
                 </button>
