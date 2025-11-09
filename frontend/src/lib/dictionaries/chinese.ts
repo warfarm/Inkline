@@ -52,11 +52,83 @@ const basicChineseDict: Record<string, { pinyin: string; definition: string }> =
   '一起': { pinyin: 'yìqǐ', definition: 'together' },
   '打': { pinyin: 'dǎ', definition: 'to hit; to play (sports)' },
   '篮球': { pinyin: 'lánqiú', definition: 'basketball' },
+  // Additional common words
+  '智能': { pinyin: 'zhìnéng', definition: 'intelligent; smart' },
+  '手机': { pinyin: 'shǒujī', definition: 'mobile phone; cell phone' },
+  '现代': { pinyin: 'xiàndài', definition: 'modern; contemporary' },
+  '社会': { pinyin: 'shèhuì', definition: 'society' },
+  '工具': { pinyin: 'gōngjù', definition: 'tool; instrument' },
+  '可以': { pinyin: 'kěyǐ', definition: 'can; may; possible' },
+  '发送': { pinyin: 'fāsòng', definition: 'to send; to transmit' },
+  '消息': { pinyin: 'xiāoxi', definition: 'message; news' },
+  '拍': { pinyin: 'pāi', definition: 'to take (photo); to pat' },
+  '照片': { pinyin: 'zhàopiàn', definition: 'photograph; picture' },
+  '上网': { pinyin: 'shàngwǎng', definition: 'to go online; surf the internet' },
+  '搜索': { pinyin: 'sōusuǒ', definition: 'to search; to look for' },
+  '信息': { pinyin: 'xìnxī', definition: 'information; news' },
+  '多': { pinyin: 'duō', definition: 'many; much; more' },
+  '人': { pinyin: 'rén', definition: 'person; people' },
+  '使用': { pinyin: 'shǐyòng', definition: 'to use; to employ' },
+  '它': { pinyin: 'tā', definition: 'it' },
+  '北京': { pinyin: 'běijīng', definition: 'Beijing' },
+  '首都': { pinyin: 'shǒudū', definition: 'capital city' },
+  '著名': { pinyin: 'zhùmíng', definition: 'famous; well-known' },
+  '景点': { pinyin: 'jǐngdiǎn', definition: 'scenic spot; tourist attraction' },
+  '长城': { pinyin: 'chángchéng', definition: 'Great Wall' },
+  '必看': { pinyin: 'bìkàn', definition: 'must-see' },
+  '地方': { pinyin: 'dìfang', definition: 'place; location' },
+  '历史': { pinyin: 'lìshǐ', definition: 'history' },
+  '悠久': { pinyin: 'yōujiǔ', definition: 'long; long-standing' },
+  '故宫': { pinyin: 'gùgōng', definition: 'Forbidden City; Palace Museum' },
+  '展示': { pinyin: 'zhǎnshì', definition: 'to display; to exhibit' },
+  '了': { pinyin: 'le', definition: 'particle indicating completed action' },
+  '古代': { pinyin: 'gǔdài', definition: 'ancient times' },
+  '皇帝': { pinyin: 'huángdì', definition: 'emperor' },
+  '生活': { pinyin: 'shēnghuó', definition: 'life; livelihood' },
+  '烤鸭': { pinyin: 'kǎoyā', definition: 'roast duck' },
+  '当地': { pinyin: 'dāngdì', definition: 'local' },
+  '美食': { pinyin: 'měishí', definition: 'delicious food; gourmet food' },
+  '游客': { pinyin: 'yóukè', definition: 'tourist; visitor' },
+  '体验': { pinyin: 'tǐyàn', definition: 'to experience' },
+  '传统': { pinyin: 'chuántǒng', definition: 'tradition; traditional' },
+  '文化': { pinyin: 'wénhuà', definition: 'culture' },
+  '结合': { pinyin: 'jiéhé', definition: 'to combine; combination' },
+  '近年来': { pinyin: 'jìnniánlái', definition: 'in recent years' },
+  '电子': { pinyin: 'diànzǐ', definition: 'electronic' },
+  '商务': { pinyin: 'shāngwù', definition: 'business; commerce' },
+  '在': { pinyin: 'zài', definition: 'at; in; to be (located)' },
+  '发展': { pinyin: 'fāzhǎn', definition: 'to develop; development' },
+  '迅速': { pinyin: 'xùnsù', definition: 'rapid; fast' },
+  '越来越': { pinyin: 'yuèláiyuè', definition: 'more and more; increasingly' },
+  '选择': { pinyin: 'xuǎnzé', definition: 'to choose; choice' },
+  '网上': { pinyin: 'wǎngshàng', definition: 'online; on the internet' },
+  '购物': { pinyin: 'gòuwù', definition: 'to shop; shopping' },
+  '方便': { pinyin: 'fāngbiàn', definition: 'convenient' },
+  '快捷': { pinyin: 'kuàijié', definition: 'fast; quick' },
+  '移动': { pinyin: 'yídòng', definition: 'to move; mobile' },
+  '支付': { pinyin: 'zhīfù', definition: 'to pay; payment' },
+  '交易': { pinyin: 'jiāoyì', definition: 'transaction; trade' },
+  '更加': { pinyin: 'gèngjiā', definition: 'even more; more' },
+  '简单': { pinyin: 'jiǎndān', definition: 'simple; easy' },
+  '许多': { pinyin: 'xǔduō', definition: 'many; much' },
+  '商店': { pinyin: 'shāngdiàn', definition: 'shop; store' },
+  '开设': { pinyin: 'kāishè', definition: 'to set up; to open' },
+  '网店': { pinyin: 'wǎngdiàn', definition: 'online shop' },
+  '这': { pinyin: 'zhè', definition: 'this' },
+  '改变': { pinyin: 'gǎibiàn', definition: 'to change; to transform' },
+  '消费': { pinyin: 'xiāofèi', definition: 'consumption; to consume' },
+  '习惯': { pinyin: 'xíguàn', definition: 'habit; custom' },
+  '但': { pinyin: 'dàn', definition: 'but; however' },
+  '网络': { pinyin: 'wǎngluò', definition: 'network; internet' },
+  '安全': { pinyin: 'ānquán', definition: 'safe; secure; safety' },
+  '问题': { pinyin: 'wèntí', definition: 'problem; question' },
+  '需要': { pinyin: 'xūyào', definition: 'to need; to require' },
+  '重视': { pinyin: 'zhòngshì', definition: 'to attach importance to; to value' },
 };
 
 export async function lookupChinese(word: string): Promise<DictionaryResult | null> {
   try {
-    // First check our basic dictionary
+    // Check our built-in dictionary
     if (basicChineseDict[word]) {
       const entry = basicChineseDict[word];
       return {
@@ -67,38 +139,20 @@ export async function lookupChinese(word: string): Promise<DictionaryResult | nu
       };
     }
 
-    // Try using a free API that supports CORS
-    // Using chinese-dictionary-api which is CORS-enabled
-    try {
-      const response = await fetch(
-        `https://api.peteryang.net/chinese-dictionary/search?q=${encodeURIComponent(word)}`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.results && data.results.length > 0) {
-          const result = data.results[0];
-          return {
-            word,
-            reading: result.pinyin || '',
-            definition: result.english || 'Definition available',
-            example: result.example || undefined,
-          };
-        }
-      }
-    } catch (apiError) {
-      console.log('API lookup failed, using fallback');
-    }
-
-    // Fallback for unknown words
+    // Fallback for unknown words - provide helpful message
     return {
       word,
       reading: '',
-      definition: 'Word not found in dictionary. Try selecting a different word or visit https://www.mdbg.net/chinese/dictionary for more.',
+      definition: `Definition not available in offline dictionary. Common meaning may include: "${word}". For full definitions, visit mdbg.net or pleco.com`,
       example: undefined,
     };
   } catch (error) {
     console.error('Error looking up Chinese word:', error);
-    return null;
+    return {
+      word,
+      reading: '',
+      definition: 'Unable to look up word. Please try again.',
+      example: undefined,
+    };
   }
 }
