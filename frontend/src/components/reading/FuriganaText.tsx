@@ -25,7 +25,7 @@ export function FuriganaText({ text, reading, showFurigana, onClick, className }
   return (
     <ruby className={className} onClick={onClick}>
       {text}
-      <rt className="text-xs">{reading}</rt>
+      <rt className="text-xs text-gray-600">{reading}</rt>
     </ruby>
   );
 }
@@ -82,7 +82,7 @@ export function SmartFuriganaText({
     return (
       <ruby className={className} onClick={onClick}>
         {text}
-        <rt className="text-xs">{reading}</rt>
+        <rt className="text-xs text-gray-600">{reading}</rt>
       </ruby>
     );
   }

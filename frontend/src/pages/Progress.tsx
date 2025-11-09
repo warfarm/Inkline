@@ -153,7 +153,7 @@ export default function Progress() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Articles Read</CardDescription>
+              <CardDescription>📚 Articles Read</CardDescription>
               <CardTitle className="text-4xl">{stats.totalArticlesRead}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -165,7 +165,7 @@ export default function Progress() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Words Saved</CardDescription>
+              <CardDescription>💯 Words Saved</CardDescription>
               <CardTitle className="text-4xl">{stats.totalWordsLearned}</CardTitle>
             </CardHeader>
             <CardContent>
@@ -192,7 +192,7 @@ export default function Progress() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Time Reading</CardDescription>
+              <CardDescription>⏱️ Time Reading</CardDescription>
               <CardTitle className="text-4xl">
                 {stats.totalTimeMinutes}
                 <span className="text-xl ml-1">min</span>

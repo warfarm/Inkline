@@ -43,6 +43,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const [hasTrackedCompletion, setHasTrackedCompletion] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
+  const [savedWords, setSavedWords] = useState<Set<string>>(new Set());
 
   // Auto-segment full content if segmented_content is incomplete
   const segmentedWords = useMemo(() => {
@@ -67,6 +68,29 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     // Segmentation is complete, use existing
     return existingWords;
   }, [article.content, article.segmented_content, article.language]);
+
+  // Fetch saved words for visual indicators
+  useEffect(() => {
+    const fetchSavedWords = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('word_bank')
+          .select('word')
+          .eq('user_id', user.id)
+          .eq('language', article.language);
+
+        if (!error && data) {
+          setSavedWords(new Set(data.map(w => w.word)));
+        }
+      } catch (error) {
+        console.error('Error fetching saved words:', error);
+      }
+    };
+
+    fetchSavedWords();
+  }, [user, article.language]);
 
   useEffect(() => {
     if (selectedWord) {
@@ -373,6 +397,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       });
 
       setWordsSaved((prev) => prev + 1);
+      setSavedWords(prev => new Set([...prev, dictionaryResult.word]));
       setSelectedWord(null);
       setDictionaryResult(null);
       hasResultRef.current = false;
@@ -487,6 +512,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       });
 
       setWordsSaved((prev) => prev + 1);
+      setSavedWords(prev => new Set([...prev, phraseResult.word]));
       handleClosePhrasePopup();
       toast.success('Added to Word Bank', {
         description: `${phraseResult.word} saved successfully`,
@@ -528,30 +554,35 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
               : "'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif"
           }}
         >
-          {segmentedWords.map((wordData, index) => (
-            <span
-              key={index}
-              role="button"
-              tabIndex={0}
-              aria-label={`${popupMode === 'hover' ? 'Hover' : 'Click'} to see definition of ${wordData.text}`}
-              className="cursor-pointer hover:underline hover:decoration-dotted hover:decoration-blue-500 hover:underline-offset-4 px-0.5 transition-all focus:outline-2 focus:outline-blue-600 focus:rounded"
-              onClick={popupMode === 'click' ? (e) => handleWordClick(wordData.text, e) : undefined}
-              onMouseEnter={popupMode === 'hover' ? (e) => handleWordHover(wordData.text, e) : undefined}
-              onMouseLeave={popupMode === 'hover' ? handleWordLeave : undefined}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  if (popupMode === 'click') {
-                    handleWordClick(wordData.text, e as any);
-                  } else {
-                    handleWordHover(wordData.text, e as any);
+          {segmentedWords.map((wordData, index) => {
+            const isSaved = savedWords.has(wordData.text);
+            return (
+              <span
+                key={index}
+                role="button"
+                tabIndex={0}
+                aria-label={`${popupMode === 'hover' ? 'Hover' : 'Click'} to see definition of ${wordData.text}`}
+                className={`cursor-pointer hover:underline hover:decoration-dotted hover:decoration-blue-500 hover:underline-offset-4 px-0.5 transition-all focus:outline-2 focus:outline-blue-600 focus:rounded ${
+                  isSaved ? 'underline decoration-blue-600 decoration-solid underline-offset-4' : ''
+                }`}
+                onClick={popupMode === 'click' ? (e) => handleWordClick(wordData.text, e) : undefined}
+                onMouseEnter={popupMode === 'hover' ? (e) => handleWordHover(wordData.text, e) : undefined}
+                onMouseLeave={popupMode === 'hover' ? handleWordLeave : undefined}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (popupMode === 'click') {
+                      handleWordClick(wordData.text, e as any);
+                    } else {
+                      handleWordHover(wordData.text, e as any);
+                    }
                   }
-                }
-              }}
-            >
-              {wordData.text}
-            </span>
-          ))}
+                }}
+              >
+                {wordData.text}
+              </span>
+            );
+          })}
         </div>
       </div>
 

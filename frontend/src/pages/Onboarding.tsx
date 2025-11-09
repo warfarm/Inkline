@@ -56,7 +56,7 @@ export default function Onboarding() {
           .single();
 
         if (classError || !classData) {
-          setError('Invalid class code');
+          setError('Code not found. Check with your teacher.');
           setLoading(false);
           return;
         }

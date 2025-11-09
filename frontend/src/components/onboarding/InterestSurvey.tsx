@@ -6,16 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 const TOPIC_OPTIONS = [
-  'Daily Life',
-  'Technology',
-  'Culture & Travel',
-  'Food & Cooking',
-  'Entertainment & Hobbies',
-  'Business & Work',
-  'Science & Nature',
-  'Sports & Fitness',
-  'Arts & Literature',
-  'Current Events',
+  { label: 'Daily Life', icon: '🏠' },
+  { label: 'Technology', icon: '💻' },
+  { label: 'Culture & Travel', icon: '✈️' },
+  { label: 'Food & Cooking', icon: '🍜' },
+  { label: 'Entertainment & Hobbies', icon: '🎮' },
+  { label: 'Business & Work', icon: '💼' },
+  { label: 'Science & Nature', icon: '🔬' },
+  { label: 'Sports & Fitness', icon: '⚽' },
+  { label: 'Arts & Literature', icon: '🎨' },
+  { label: 'Current Events', icon: '📰' },
 ];
 
 interface InterestSurveyProps {
@@ -26,9 +26,9 @@ export function InterestSurvey({ onNext }: InterestSurveyProps) {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [customInterest, setCustomInterest] = useState('');
 
-  const handleTopicToggle = (topic: string) => {
+  const handleTopicToggle = (topicLabel: string) => {
     setSelectedTopics((prev) =>
-      prev.includes(topic) ? prev.filter((t) => t !== topic) : [...prev, topic]
+      prev.includes(topicLabel) ? prev.filter((t) => t !== topicLabel) : [...prev, topicLabel]
     );
   };
 
@@ -52,14 +52,15 @@ export function InterestSurvey({ onNext }: InterestSurveyProps) {
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           {TOPIC_OPTIONS.map((topic) => (
-            <div key={topic} className="flex items-center space-x-2">
+            <div key={topic.label} className="flex items-center space-x-2">
               <Checkbox
-                id={topic}
-                checked={selectedTopics.includes(topic)}
-                onCheckedChange={() => handleTopicToggle(topic)}
+                id={topic.label}
+                checked={selectedTopics.includes(topic.label)}
+                onCheckedChange={() => handleTopicToggle(topic.label)}
               />
-              <Label htmlFor={topic} className="cursor-pointer font-normal">
-                {topic}
+              <Label htmlFor={topic.label} className="cursor-pointer font-normal">
+                <span className="mr-2">{topic.icon}</span>
+                {topic.label}
               </Label>
             </div>
           ))}
@@ -75,9 +76,18 @@ export function InterestSurvey({ onNext }: InterestSurveyProps) {
           />
         </div>
 
-        <Button onClick={handleNext} className="w-full" disabled={selectedTopics.length === 0}>
-          Next
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => onNext([])}
+            className="flex-1"
+          >
+            Skip, I'll explore everything
+          </Button>
+          <Button onClick={handleNext} className="flex-1" disabled={selectedTopics.length === 0}>
+            Next
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

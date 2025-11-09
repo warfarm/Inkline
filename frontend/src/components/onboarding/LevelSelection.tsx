@@ -7,17 +7,23 @@ const LEVELS = [
   {
     value: 'beginner',
     label: 'Beginner',
-    description: 'I know basic phrases and can read simple sentences',
+    description: 'I know basic phrases and can read simple sentences (~100-500 words)',
+    sampleZh: '我喜欢学习中文。',
+    sampleJa: '私は日本語を勉強します。',
   },
   {
     value: 'intermediate',
     label: 'Intermediate',
     description: 'I can read short articles with some help',
+    sampleZh: '今天天气很好，我想去公园散步。',
+    sampleJa: '今日はいい天気なので、公園を散歩したいです。',
   },
   {
     value: 'advanced',
     label: 'Advanced',
     description: "I'm comfortable reading most content with occasional lookups",
+    sampleZh: '随着科技的发展，人工智能正在改变我们的生活方式。',
+    sampleJa: '技術の進歩により、人工知能が私たちの生活様式を変えています。',
   },
 ] as const;
 
@@ -117,6 +123,11 @@ export function LevelSelection({ onNext, onBack }: LevelSelectionProps) {
                 <div className="flex-1">
                   <div className="font-medium">{level.label}</div>
                   <div className="text-sm text-muted-foreground">{level.description}</div>
+                  {selectedLanguage && (
+                    <div className="mt-2 text-sm italic text-gray-600">
+                      Example: {selectedLanguage === 'zh' ? level.sampleZh : level.sampleJa}
+                    </div>
+                  )}
                 </div>
                 <div
                   className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
