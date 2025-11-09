@@ -153,7 +153,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur shadow-sm">
+      <header className="sticky top-0 z-40 border-b bg-background shadow-sm">
         <div className="container mx-auto max-w-4xl flex items-center justify-between px-4 py-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             ← Back

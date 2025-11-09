@@ -123,9 +123,9 @@ export default function ArticleView() {
       {/* Word Bank Side Panel */}
       {showWordBank && (
         <div
-          className={`fixed top-0 ${panelPosition === 'right' ? 'right-0 border-l' : 'left-0 border-r'} h-full w-80 bg-card shadow-xl overflow-y-auto z-[60] transition-transform duration-300`}
+          className={`fixed top-0 ${panelPosition === 'right' ? 'right-0 border-l' : 'left-0 border-r'} h-full w-80 bg-card/100 shadow-xl overflow-y-auto z-[60] transition-transform duration-300`}
         >
-          <div className="p-4 border-b sticky top-0 bg-card z-[70]">
+          <div className="p-4 border-b sticky top-0 bg-card/100 z-[70]">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-lg">My Word Bank</h2>
               <Button variant="ghost" size="sm" onClick={() => setShowWordBank(false)}>
@@ -270,7 +270,7 @@ export default function ArticleView() {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur shadow-sm">
+      <header className="sticky top-0 z-40 border-b bg-background shadow-sm">
         <div className="container mx-auto flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="text-sm sm:text-base">
             ← Back
