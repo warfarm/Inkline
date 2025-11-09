@@ -65,7 +65,7 @@ export function ArticleFeedback({ articleId, userId, topic }: ArticleFeedbackPro
   }
 
   return (
-    <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+    <Card className="bg-muted/20 border-border">
       <CardHeader>
         <CardTitle className="text-lg">How did you like this article?</CardTitle>
         <CardDescription>
@@ -79,9 +79,9 @@ export function ArticleFeedback({ articleId, userId, topic }: ArticleFeedbackPro
             size="lg"
             onClick={() => handleFeedback(true)}
             disabled={loading}
-            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-green-50 hover:border-green-500 hover:text-green-700 dark:hover:bg-green-950"
+            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-green-500 hover:border-green-600 hover:text-white transition-all"
           >
-            <span className="text-lg mr-2">👍</span>
+            <span className="inline-block text-lg mr-2 transition-transform hover:scale-125">👍</span>
             More
           </Button>
           <Button
@@ -89,9 +89,9 @@ export function ArticleFeedback({ articleId, userId, topic }: ArticleFeedbackPro
             size="lg"
             onClick={() => handleFeedback(null)}
             disabled={loading}
-            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-gray-200 hover:border-gray-300 hover:text-gray-900 transition-all"
           >
-            <span className="text-lg mr-2">😐</span>
+            <span className="inline-block text-lg mr-2 transition-transform hover:scale-125">😐</span>
             Neutral
           </Button>
           <Button
@@ -99,9 +99,9 @@ export function ArticleFeedback({ articleId, userId, topic }: ArticleFeedbackPro
             size="lg"
             onClick={() => handleFeedback(false)}
             disabled={loading}
-            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-red-50 hover:border-red-500 hover:text-red-700 dark:hover:bg-red-950"
+            className="flex-1 min-w-[140px] max-w-[180px] hover:bg-red-500 hover:border-red-600 hover:text-white transition-all"
           >
-            <span className="text-lg mr-2">👎</span>
+            <span className="inline-block text-lg mr-2 transition-transform hover:scale-125">👎</span>
             Less
           </Button>
         </div>
