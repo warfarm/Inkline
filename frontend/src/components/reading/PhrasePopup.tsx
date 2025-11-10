@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import type { DictionaryResult } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -31,6 +32,8 @@ export function PhrasePopup({
   const popupRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const [userNote, setUserNote] = useState('');
 
   useEffect(() => {
     if (popupRef.current) {
@@ -169,15 +172,58 @@ export function PhrasePopup({
               <div>{result.definition}</div>
             </div>
 
-            {result.example && (
+            {result.example && !showMore && (
               <div className="rounded-md bg-muted p-2 text-sm">
                 <div className="text-xs font-medium text-muted-foreground mb-1">Example:</div>
                 <div>{result.example}</div>
               </div>
             )}
 
-            <div className="flex gap-2 pt-2">
-              <Button onClick={() => onSave()} disabled={saving} className="flex-1">
+            {/* Show More Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMore(!showMore)}
+              className="w-full text-xs"
+            >
+              {showMore ? '▲ Show Less' : '▼ Show More'}
+            </Button>
+
+            {/* Expanded Content */}
+            {showMore && (
+              <div className="space-y-3 pt-2 border-t">
+                {/* Example in expanded view */}
+                {result.example && (
+                  <div className="rounded-md bg-muted p-2 text-sm">
+                    <div className="text-xs font-medium text-muted-foreground mb-1">Example:</div>
+                    <div>{result.example}</div>
+                  </div>
+                )}
+
+                {/* User Notes */}
+                <div>
+                  <div className="font-semibold text-xs text-muted-foreground mb-2">
+                    Personal Notes:
+                  </div>
+                  <Textarea
+                    value={userNote}
+                    onChange={(e) => setUserNote(e.target.value)}
+                    placeholder="Add your own notes about this phrase..."
+                    className="text-sm min-h-[60px]"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2 border-t">
+              <Button
+                onClick={() => {
+                  console.log('Saving with note:', userNote);
+                  onSave(userNote || undefined);
+                }}
+                disabled={saving}
+                className="flex-1"
+              >
                 {saving ? 'Saving...' : 'Save to Word Bank'}
               </Button>
               <Button onClick={onClose} variant="outline">

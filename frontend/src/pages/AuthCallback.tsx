@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabase';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const { user, profile, loading, refreshProfile } = useAuth();
-  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  const { user, profile, loading } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,33 +28,10 @@ export default function AuthCallback() {
         return;
       }
 
-      // If no profile exists, create one for new users
-      if (!profile && user && !isCreatingProfile) {
-        setIsCreatingProfile(true);
-        try {
-          const { error } = await supabase.from('profiles').insert({
-            id: user.id,
-            role: 'student',
-            display_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
-            interests: [],
-          });
-
-          if (error) {
-            // Profile might already exist, just refresh
-            console.log('Profile creation error (might already exist):', error);
-          }
-
-          // Refresh profile after creation
-          await refreshProfile();
-          setIsCreatingProfile(false);
-          navigate('/onboarding');
-          return;
-        } catch (error) {
-          console.error('Error creating profile:', error);
-          setIsCreatingProfile(false);
-          navigate('/login');
-          return;
-        }
+      // If no profile exists, redirect to home (role selection will be shown by ProtectedRoute)
+      if (!profile && user) {
+        navigate('/home');
+        return;
       }
 
       // Handle existing users
@@ -72,7 +47,7 @@ export default function AuthCallback() {
     };
 
     handleCallback();
-  }, [user, profile, loading, navigate, refreshProfile, isCreatingProfile]);
+  }, [user, profile, loading, navigate]);
 
   if (error) {
     return (
