@@ -156,9 +156,9 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
 
             {/* Grammar Notes - Always visible for particles */}
             {result.grammarNotes && (
-              <div className="rounded-md bg-blue-50 border border-blue-200 p-2 text-sm">
-                <div className="font-semibold text-blue-900 mb-1">Grammar:</div>
-                <div className="text-blue-800">{result.grammarNotes}</div>
+              <div className="rounded-md bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 p-2 text-sm">
+                <div className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Grammar:</div>
+                <div className="text-blue-800 dark:text-blue-200">{result.grammarNotes}</div>
               </div>
             )}
 
@@ -174,17 +174,17 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
 
             {/* Character Components - Always visible for Chinese compound words */}
             {result.componentCharacters && result.componentCharacters.length > 0 && (
-              <div className="rounded-md bg-emerald-50 border border-emerald-200 p-3 text-sm">
-                <div className="font-semibold text-emerald-900 mb-2">Character Breakdown:</div>
+              <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-3 text-sm">
+                <div className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Character Breakdown:</div>
                 <div className="space-y-2">
                   {result.componentCharacters.map((component, idx) => (
                     <div key={idx} className="flex items-start gap-2">
-                      <span className="text-xl font-bold text-emerald-900 min-w-[1.5rem]">
+                      <span className="text-xl font-bold text-emerald-900 dark:text-emerald-100 min-w-[1.5rem]">
                         {component.character}
                       </span>
                       <div className="flex-1">
-                        <span className="text-emerald-700 font-medium">{component.reading}</span>
-                        <span className="text-emerald-800 ml-2">— {component.definition}</span>
+                        <span className="text-emerald-700 dark:text-emerald-300 font-medium">{component.reading}</span>
+                        <span className="text-emerald-800 dark:text-emerald-200 ml-2">— {component.definition}</span>
                       </div>
                     </div>
                   ))}
@@ -230,9 +230,9 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
 
                 {/* Usage Notes */}
                 {result.usageNotes && (
-                  <div className="rounded-md bg-amber-50 border border-amber-200 p-2 text-sm">
-                    <div className="font-semibold text-amber-900 mb-1">Usage:</div>
-                    <div className="text-amber-800">{result.usageNotes}</div>
+                  <div className="rounded-md bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-2 text-sm">
+                    <div className="font-semibold text-amber-900 dark:text-amber-100 mb-1">Usage:</div>
+                    <div className="text-amber-800 dark:text-amber-200">{result.usageNotes}</div>
                   </div>
                 )}
 
