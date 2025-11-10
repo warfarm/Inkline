@@ -38,6 +38,19 @@ export interface Article {
     example: string;
   }>;
   created_at: string;
+  word_definitions?: Record<string, {
+    reading?: string;
+    definition?: string;
+    example?: string;
+    grammarNotes?: string;
+    formalityLevel?: 'casual' | 'polite' | 'formal';
+    usageNotes?: string;
+    definitions?: Array<{
+      meaning: string;
+      partOfSpeech?: string;
+    }>;
+    examples?: string[];
+  }>;
 }
 
 export interface WordBankEntry {

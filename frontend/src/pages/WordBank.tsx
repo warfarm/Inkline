@@ -14,6 +14,7 @@ export default function WordBank() {
   const { user, profile } = useAuth();
   const [words, setWords] = useState<WordBankEntry[]>([]);
   const [filter, setFilter] = useState<'all' | 'learning' | 'mastered'>('all');
+  const [languageFilter, setLanguageFilter] = useState<'all' | 'ja' | 'zh'>('all');
   const [loading, setLoading] = useState(true);
   const [practiceMode, setPracticeMode] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -25,7 +26,7 @@ export default function WordBank() {
     if (user) {
       fetchWords();
     }
-  }, [user, filter]);
+  }, [user, filter, languageFilter]);
 
   const fetchWords = async () => {
     if (!user) return;
@@ -40,6 +41,10 @@ export default function WordBank() {
 
       if (filter !== 'all') {
         query = query.eq('status', filter);
+      }
+
+      if (languageFilter !== 'all') {
+        query = query.eq('language', languageFilter);
       }
 
       const { data, error } = await query;
@@ -264,26 +269,54 @@ export default function WordBank() {
   return (
     <Layout>
       <div className="mb-6 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex gap-2">
-            <Button
-              variant={filter === 'all' ? 'default' : 'outline'}
-              onClick={() => setFilter('all')}
-            >
-              All ({words.length})
-            </Button>
-            <Button
-              variant={filter === 'learning' ? 'default' : 'outline'}
-              onClick={() => setFilter('learning')}
-            >
-              Learning
-            </Button>
-            <Button
-              variant={filter === 'mastered' ? 'default' : 'outline'}
-              onClick={() => setFilter('mastered')}
-            >
-              Mastered
-            </Button>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4">
+            {/* Status Filter */}
+            <div className="flex gap-2">
+              <Button
+                variant={filter === 'all' ? 'default' : 'outline'}
+                onClick={() => setFilter('all')}
+              >
+                All ({words.length})
+              </Button>
+              <Button
+                variant={filter === 'learning' ? 'default' : 'outline'}
+                onClick={() => setFilter('learning')}
+              >
+                Learning
+              </Button>
+              <Button
+                variant={filter === 'mastered' ? 'default' : 'outline'}
+                onClick={() => setFilter('mastered')}
+              >
+                Mastered
+              </Button>
+            </div>
+
+            {/* Language Filter */}
+            <div className="flex gap-2 border-l pl-4">
+              <Button
+                variant={languageFilter === 'all' ? 'default' : 'outline'}
+                onClick={() => setLanguageFilter('all')}
+                size="sm"
+              >
+                All Languages
+              </Button>
+              <Button
+                variant={languageFilter === 'ja' ? 'default' : 'outline'}
+                onClick={() => setLanguageFilter('ja')}
+                size="sm"
+              >
+                🇯🇵 Japanese
+              </Button>
+              <Button
+                variant={languageFilter === 'zh' ? 'default' : 'outline'}
+                onClick={() => setLanguageFilter('zh')}
+                size="sm"
+              >
+                🇨🇳 Chinese
+              </Button>
+            </div>
           </div>
 
           <div className="flex gap-2">
@@ -349,8 +382,11 @@ export default function WordBank() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle className="text-2xl">{word.word}</CardTitle>
+                        <span className="text-xs px-2 py-0.5 rounded bg-muted border border-border">
+                          {word.language === 'ja' ? '🇯🇵 JP' : '🇨🇳 ZH'}
+                        </span>
                         <Button
                           variant="ghost"
                           size="sm"

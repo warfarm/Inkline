@@ -11,6 +11,7 @@ import MyClasses from '@/pages/MyClasses';
 import JoinClass from '@/pages/JoinClass';
 import Settings from '@/pages/Settings';
 import SettingsTest from '@/pages/SettingsTest';
+import Admin from '@/pages/Admin';
 import TeacherDashboard from '@/pages/TeacherDashboard';
 import ClassDetail from '@/pages/ClassDetail';
 
@@ -119,6 +120,15 @@ function App() {
         element={
           <ProtectedRoute requiredRole="student">
             <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Admin />
           </ProtectedRoute>
         }
       />

@@ -21,6 +21,7 @@ export default function ArticleView() {
   const [wordsLoading, setWordsLoading] = useState(false);
   const [showWordBank, setShowWordBank] = useState(false);
   const [expandedPanelCards, setExpandedPanelCards] = useState<Set<string>>(new Set());
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -273,17 +274,33 @@ export default function ArticleView() {
 
       <header className="sticky top-0 z-40 border-b bg-background shadow-sm">
         <div className="container mx-auto grid grid-cols-3 items-center gap-2 px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex justify-start">
+          {/* Mobile: Hamburger Menu */}
+          <div className="flex justify-start sm:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="h-10 w-10 p-0 text-xl"
+            >
+              {showMobileMenu ? '✕' : '☰'}
+            </Button>
+          </div>
+
+          {/* Desktop: Back Button */}
+          <div className="hidden sm:flex justify-start">
             <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="text-sm sm:text-base">
               ← Back
             </Button>
           </div>
+
           <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate text-center">{article.title}</h1>
-          <div className="flex gap-2 justify-end">
+
+          {/* Desktop: Action Buttons */}
+          <div className="hidden sm:flex gap-2 justify-end">
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 w-9 p-0"
+              className="h-12 w-12 p-0 text-2xl"
               onClick={() => navigate('/settings')}
               title="Settings"
             >
@@ -298,7 +315,48 @@ export default function ArticleView() {
               {showWordBank ? 'Close' : 'Word Bank'}
             </Button>
           </div>
+
+          {/* Mobile: Empty space to maintain grid layout */}
+          <div className="sm:hidden"></div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {showMobileMenu && (
+          <div className="sm:hidden border-t bg-background/95 backdrop-blur">
+            <div className="container mx-auto px-4 py-2 space-y-1">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-left"
+                onClick={() => {
+                  navigate('/home');
+                  setShowMobileMenu(false);
+                }}
+              >
+                ← Back to Home
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-left"
+                onClick={() => {
+                  setShowWordBank(!showWordBank);
+                  setShowMobileMenu(false);
+                }}
+              >
+                📚 {showWordBank ? 'Close' : 'Open'} Word Bank
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-left"
+                onClick={() => {
+                  navigate('/settings');
+                  setShowMobileMenu(false);
+                }}
+              >
+                ⚙️ Settings
+              </Button>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="container mx-auto max-w-4xl px-4 sm:px-6 py-6 sm:py-8 pb-28 sm:pb-32 space-y-6 sm:space-y-8">

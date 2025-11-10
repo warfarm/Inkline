@@ -210,10 +210,31 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     hasResultRef.current = false;
 
     try {
-      const result =
-        article.language === 'ja'
-          ? await lookupJapanese(word)
-          : await lookupChinese(word);
+      let result = null;
+
+      // Check if definition is preloaded in article
+      if (article.word_definitions && article.word_definitions[word]) {
+        const preloaded = article.word_definitions[word];
+        result = {
+          word,
+          reading: preloaded.reading || '',
+          definition: preloaded.definition || '',
+          example: preloaded.example,
+          grammarNotes: preloaded.grammarNotes,
+          formalityLevel: preloaded.formalityLevel,
+          usageNotes: preloaded.usageNotes,
+          definitions: preloaded.definitions,
+          examples: preloaded.examples,
+        };
+        console.log('Using preloaded definition for:', word);
+      } else {
+        // Fallback to API lookup
+        result =
+          article.language === 'ja'
+            ? await lookupJapanese(word)
+            : await lookupChinese(word);
+        console.log('Fetched definition via API for:', word);
+      }
 
       // If no result, create a "not found" result
       if (result) {
@@ -449,10 +470,31 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     setPhraseResult(null);
 
     try {
-      const result =
-        article.language === 'ja'
-          ? await lookupJapanese(phrase)
-          : await lookupChinese(phrase);
+      let result = null;
+
+      // Check if definition is preloaded in article
+      if (article.word_definitions && article.word_definitions[phrase]) {
+        const preloaded = article.word_definitions[phrase];
+        result = {
+          word: phrase,
+          reading: preloaded.reading || '',
+          definition: preloaded.definition || '',
+          example: preloaded.example,
+          grammarNotes: preloaded.grammarNotes,
+          formalityLevel: preloaded.formalityLevel,
+          usageNotes: preloaded.usageNotes,
+          definitions: preloaded.definitions,
+          examples: preloaded.examples,
+        };
+        console.log('Using preloaded definition for phrase:', phrase);
+      } else {
+        // Fallback to API lookup
+        result =
+          article.language === 'ja'
+            ? await lookupJapanese(phrase)
+            : await lookupChinese(phrase);
+        console.log('Fetched phrase definition via API for:', phrase);
+      }
 
       // Always set a result, even if not found
       if (result) {
