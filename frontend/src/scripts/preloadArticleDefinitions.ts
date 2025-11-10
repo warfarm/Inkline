@@ -41,7 +41,7 @@ export async function preloadArticleDefinitions(articleId?: string) {
       }
 
       const words = article.segmented_content?.words || [];
-      const uniqueWords = [...new Set(words.map((w) => (w as { text: string }).text))];
+      const uniqueWords = [...new Set(words.map((w: any) => w.text as string))] as string[];
 
       console.log(`  - Found ${uniqueWords.length} unique words`);
 
