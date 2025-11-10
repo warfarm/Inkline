@@ -34,23 +34,31 @@ export async function preloadArticleDefinitions(articleId?: string) {
     for (const article of articles) {
       console.log(`Processing article ${article.id} (${article.language})...`);
 
-      // Skip if already has definitions
-      if (article.word_definitions && Object.keys(article.word_definitions).length > 0) {
-        console.log(`  - Already has ${Object.keys(article.word_definitions).length} preloaded definitions, skipping...`);
-        continue;
-      }
-
       const words = article.segmented_content?.words || [];
       const uniqueWords = [...new Set(words.map((w: any) => w.text as string))] as string[];
 
-      console.log(`  - Found ${uniqueWords.length} unique words`);
+      // Start with existing definitions (if any)
+      const wordDefinitions: Record<string, any> = article.word_definitions || {};
+      const existingCount = Object.keys(wordDefinitions).length;
 
-      const wordDefinitions: Record<string, any> = {};
+      // Filter out words that already have definitions
+      const wordsToFetch = uniqueWords.filter(word => !wordDefinitions[word]);
+
+      console.log(`  - Found ${uniqueWords.length} unique words`);
+      console.log(`  - Already has ${existingCount} definitions`);
+      console.log(`  - Need to fetch ${wordsToFetch.length} new definitions`);
+
+      // Skip if all words already have definitions
+      if (wordsToFetch.length === 0) {
+        console.log(`  ✓ All words already preloaded, skipping...`);
+        continue;
+      }
+
       let successCount = 0;
 
       // Batch process words with a small delay to avoid overwhelming the API
-      for (let i = 0; i < uniqueWords.length; i++) {
-        const word = uniqueWords[i];
+      for (let i = 0; i < wordsToFetch.length; i++) {
+        const word = wordsToFetch[i];
 
         try {
           const result = article.language === 'zh'
@@ -72,13 +80,13 @@ export async function preloadArticleDefinitions(articleId?: string) {
           }
 
           // Add delay for Japanese API calls to avoid rate limiting
-          if (article.language === 'ja' && i < uniqueWords.length - 1) {
+          if (article.language === 'ja' && i < wordsToFetch.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 300));
           }
 
           // Progress update every 10 words
           if ((i + 1) % 10 === 0) {
-            console.log(`  - Progress: ${i + 1}/${uniqueWords.length} words processed`);
+            console.log(`  - Progress: ${i + 1}/${wordsToFetch.length} words processed`);
           }
         } catch (error) {
           console.error(`  - Error fetching definition for "${word}":`, error);
@@ -94,7 +102,8 @@ export async function preloadArticleDefinitions(articleId?: string) {
       if (updateError) {
         console.error(`  - Error updating article:`, updateError);
       } else {
-        console.log(`  ✓ Successfully preloaded ${successCount} definitions`);
+        const totalDefinitions = Object.keys(wordDefinitions).length;
+        console.log(`  ✓ Successfully preloaded ${successCount} new definitions (total: ${totalDefinitions})`);
       }
     }
 
