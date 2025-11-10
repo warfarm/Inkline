@@ -22,6 +22,17 @@ export default function WordBank() {
   const [searchQuery, setSearchQuery] = useState('');
   const [speakingWords, setSpeakingWords] = useState<Set<string>>(new Set());
 
+  // Advanced filter states
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [dateFilter, setDateFilter] = useState<'all' | '7days' | '30days' | '3months'>('all');
+  const [reviewFrequencyFilter, setReviewFrequencyFilter] = useState<'all' | 'never' | '1-5' | '5+'>('all');
+  const [hasGrammarNotes, setHasGrammarNotes] = useState<boolean | null>(null);
+  const [hasUsageNotes, setHasUsageNotes] = useState<boolean | null>(null);
+  const [hasExampleSentence, setHasExampleSentence] = useState<boolean | null>(null);
+  const [formalityFilter, setFormalityFilter] = useState<'all' | 'casual' | 'polite' | 'formal'>('all');
+  const [cardLimit, setCardLimit] = useState<number | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'leastReviewed' | 'mostReviewed' | 'random'>('newest');
+
   useEffect(() => {
     if (user) {
       fetchWords();
@@ -248,10 +259,55 @@ export default function WordBank() {
       (w.grammar_notes && w.grammar_notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (w.usage_notes && w.usage_notes.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    return matchesFilter && matchesSearch;
+    // Apply date filter
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const wordDate = new Date(w.first_seen_at);
+      const now = new Date();
+      const diffDays = Math.floor((now.getTime() - wordDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (dateFilter === '7days') matchesDate = diffDays <= 7;
+      else if (dateFilter === '30days') matchesDate = diffDays <= 30;
+      else if (dateFilter === '3months') matchesDate = diffDays <= 90;
+    }
+
+    // Apply review frequency filter
+    let matchesReviewFrequency = true;
+    if (reviewFrequencyFilter !== 'all') {
+      const reviewCount = w.times_reviewed || 0;
+      if (reviewFrequencyFilter === 'never') matchesReviewFrequency = reviewCount === 0;
+      else if (reviewFrequencyFilter === '1-5') matchesReviewFrequency = reviewCount >= 1 && reviewCount <= 5;
+      else if (reviewFrequencyFilter === '5+') matchesReviewFrequency = reviewCount > 5;
+    }
+
+    // Apply metadata filters
+    const matchesGrammarNotes = hasGrammarNotes === null || (hasGrammarNotes ? !!w.grammar_notes : !w.grammar_notes);
+    const matchesUsageNotes = hasUsageNotes === null || (hasUsageNotes ? !!w.usage_notes : !w.usage_notes);
+    const matchesExampleSentence = hasExampleSentence === null || (hasExampleSentence ? !!w.example_sentence : !w.example_sentence);
+
+    // Apply formality filter
+    const matchesFormality = formalityFilter === 'all' || w.formality_level === formalityFilter;
+
+    return matchesFilter && matchesSearch && matchesDate && matchesReviewFrequency &&
+           matchesGrammarNotes && matchesUsageNotes && matchesExampleSentence && matchesFormality;
   });
 
-  const filteredWordsForPractice = filteredWords;
+  // Apply sorting
+  let sortedWords = [...filteredWords];
+  if (sortBy === 'newest') {
+    sortedWords.sort((a, b) => new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime());
+  } else if (sortBy === 'oldest') {
+    sortedWords.sort((a, b) => new Date(a.first_seen_at).getTime() - new Date(b.first_seen_at).getTime());
+  } else if (sortBy === 'leastReviewed') {
+    sortedWords.sort((a, b) => (a.times_reviewed || 0) - (b.times_reviewed || 0));
+  } else if (sortBy === 'mostReviewed') {
+    sortedWords.sort((a, b) => (b.times_reviewed || 0) - (a.times_reviewed || 0));
+  } else if (sortBy === 'random') {
+    sortedWords.sort(() => Math.random() - 0.5);
+  }
+
+  // Apply card limit
+  const filteredWordsForPractice = cardLimit === 'all' ? sortedWords : sortedWords.slice(0, cardLimit);
 
   if (practiceMode && filteredWordsForPractice.length > 0) {
     return (
@@ -326,7 +382,7 @@ export default function WordBank() {
                   Export to CSV
                 </Button>
                 <Button onClick={() => setPracticeMode(true)} variant="default">
-                  Practice Flashcards
+                  Practice Flashcards {cardLimit !== 'all' && filteredWordsForPractice.length < filteredWords.length ? `(${filteredWordsForPractice.length})` : ''}
                 </Button>
               </>
             )}
@@ -348,6 +404,255 @@ export default function WordBank() {
             </p>
           )}
         </div>
+
+        {/* Advanced Filters Toggle */}
+        <div className="w-full">
+          <Button
+            variant="outline"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="w-full md:w-auto"
+          >
+            {showAdvancedFilters ? '▲' : '▼'} Advanced Filters
+          </Button>
+        </div>
+
+        {/* Advanced Filters Section */}
+        {showAdvancedFilters && (
+          <Card className="w-full">
+            <CardContent className="p-4 space-y-4">
+              {/* Date Range Filter */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Date Added</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={dateFilter === 'all' ? 'default' : 'outline'}
+                    onClick={() => setDateFilter('all')}
+                  >
+                    All Time
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={dateFilter === '7days' ? 'default' : 'outline'}
+                    onClick={() => setDateFilter('7days')}
+                  >
+                    Last 7 Days
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={dateFilter === '30days' ? 'default' : 'outline'}
+                    onClick={() => setDateFilter('30days')}
+                  >
+                    Last 30 Days
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={dateFilter === '3months' ? 'default' : 'outline'}
+                    onClick={() => setDateFilter('3months')}
+                  >
+                    Last 3 Months
+                  </Button>
+                </div>
+              </div>
+
+              {/* Review Frequency Filter */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Review Frequency</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={reviewFrequencyFilter === 'all' ? 'default' : 'outline'}
+                    onClick={() => setReviewFrequencyFilter('all')}
+                  >
+                    All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={reviewFrequencyFilter === 'never' ? 'default' : 'outline'}
+                    onClick={() => setReviewFrequencyFilter('never')}
+                  >
+                    Never Reviewed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={reviewFrequencyFilter === '1-5' ? 'default' : 'outline'}
+                    onClick={() => setReviewFrequencyFilter('1-5')}
+                  >
+                    1-5 Times
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={reviewFrequencyFilter === '5+' ? 'default' : 'outline'}
+                    onClick={() => setReviewFrequencyFilter('5+')}
+                  >
+                    5+ Times
+                  </Button>
+                </div>
+              </div>
+
+              {/* Word Content Filters */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Word Content</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={hasGrammarNotes === true ? 'default' : hasGrammarNotes === false ? 'secondary' : 'outline'}
+                    onClick={() => setHasGrammarNotes(hasGrammarNotes === null ? true : hasGrammarNotes === true ? false : null)}
+                  >
+                    {hasGrammarNotes === true ? '✓ Has Grammar Notes' : hasGrammarNotes === false ? '✗ No Grammar Notes' : 'Grammar Notes'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={hasUsageNotes === true ? 'default' : hasUsageNotes === false ? 'secondary' : 'outline'}
+                    onClick={() => setHasUsageNotes(hasUsageNotes === null ? true : hasUsageNotes === true ? false : null)}
+                  >
+                    {hasUsageNotes === true ? '✓ Has Usage Notes' : hasUsageNotes === false ? '✗ No Usage Notes' : 'Usage Notes'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={hasExampleSentence === true ? 'default' : hasExampleSentence === false ? 'secondary' : 'outline'}
+                    onClick={() => setHasExampleSentence(hasExampleSentence === null ? true : hasExampleSentence === true ? false : null)}
+                  >
+                    {hasExampleSentence === true ? '✓ Has Examples' : hasExampleSentence === false ? '✗ No Examples' : 'Examples'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Formality Level Filter */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Formality Level</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={formalityFilter === 'all' ? 'default' : 'outline'}
+                    onClick={() => setFormalityFilter('all')}
+                  >
+                    All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={formalityFilter === 'casual' ? 'default' : 'outline'}
+                    onClick={() => setFormalityFilter('casual')}
+                  >
+                    Casual
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={formalityFilter === 'polite' ? 'default' : 'outline'}
+                    onClick={() => setFormalityFilter('polite')}
+                  >
+                    Polite
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={formalityFilter === 'formal' ? 'default' : 'outline'}
+                    onClick={() => setFormalityFilter('formal')}
+                  >
+                    Formal
+                  </Button>
+                </div>
+              </div>
+
+              {/* Sort Options */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Sort By</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'newest' ? 'default' : 'outline'}
+                    onClick={() => setSortBy('newest')}
+                  >
+                    Newest First
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'oldest' ? 'default' : 'outline'}
+                    onClick={() => setSortBy('oldest')}
+                  >
+                    Oldest First
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'leastReviewed' ? 'default' : 'outline'}
+                    onClick={() => setSortBy('leastReviewed')}
+                  >
+                    Least Reviewed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'mostReviewed' ? 'default' : 'outline'}
+                    onClick={() => setSortBy('mostReviewed')}
+                  >
+                    Most Reviewed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={sortBy === 'random' ? 'default' : 'outline'}
+                    onClick={() => setSortBy('random')}
+                  >
+                    Random
+                  </Button>
+                </div>
+              </div>
+
+              {/* Card Limit */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Practice Session Limit</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={cardLimit === 10 ? 'default' : 'outline'}
+                    onClick={() => setCardLimit(10)}
+                  >
+                    10 Cards
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={cardLimit === 20 ? 'default' : 'outline'}
+                    onClick={() => setCardLimit(20)}
+                  >
+                    20 Cards
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={cardLimit === 50 ? 'default' : 'outline'}
+                    onClick={() => setCardLimit(50)}
+                  >
+                    50 Cards
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={cardLimit === 'all' ? 'default' : 'outline'}
+                    onClick={() => setCardLimit('all')}
+                  >
+                    All ({filteredWords.length})
+                  </Button>
+                </div>
+              </div>
+
+              {/* Reset All Filters */}
+              <div className="pt-2 border-t">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setDateFilter('all');
+                    setReviewFrequencyFilter('all');
+                    setHasGrammarNotes(null);
+                    setHasUsageNotes(null);
+                    setHasExampleSentence(null);
+                    setFormalityFilter('all');
+                    setCardLimit('all');
+                    setSortBy('newest');
+                  }}
+                  className="w-full"
+                >
+                  Reset Advanced Filters
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {loading ? (
@@ -370,7 +675,7 @@ export default function WordBank() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredWords.map((word) => {
+          {sortedWords.map((word) => {
             const isExpanded = expandedCards.has(word.id);
             const hasExpandableContent = word.example_sentence ||
               word.usage_notes ||
