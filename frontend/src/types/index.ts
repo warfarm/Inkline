@@ -107,4 +107,9 @@ export interface DictionaryResult {
   formalityLevel?: 'casual' | 'polite' | 'formal';
   usageNotes?: string;
   example?: string; // Kept for backwards compatibility
+  componentCharacters?: Array<{
+    character: string;
+    reading: string;
+    definition: string;
+  }>;
 }

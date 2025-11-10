@@ -172,6 +172,26 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
               {result.definition}
             </div>
 
+            {/* Character Components - Always visible for Chinese compound words */}
+            {result.componentCharacters && result.componentCharacters.length > 0 && (
+              <div className="rounded-md bg-emerald-50 border border-emerald-200 p-3 text-sm">
+                <div className="font-semibold text-emerald-900 mb-2">Character Breakdown:</div>
+                <div className="space-y-2">
+                  {result.componentCharacters.map((component, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="text-xl font-bold text-emerald-900 min-w-[1.5rem]">
+                        {component.character}
+                      </span>
+                      <div className="flex-1">
+                        <span className="text-emerald-700 font-medium">{component.reading}</span>
+                        <span className="text-emerald-800 ml-2">— {component.definition}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Show More Button */}
             {(result.definitions && result.definitions.length > 1) || result.usageNotes || result.examples ? (
               <Button

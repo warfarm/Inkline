@@ -623,21 +623,62 @@ export async function lookupChinese(word: string): Promise<DictionaryResult | nu
     // Check our built-in dictionary
     if (basicChineseDict[word]) {
       const entry = basicChineseDict[word];
+
+      // For compound words (more than 1 character), get component character definitions
+      let componentCharacters;
+      if (word.length > 1) {
+        componentCharacters = [];
+        for (const char of word) {
+          if (basicChineseDict[char]) {
+            componentCharacters.push({
+              character: char,
+              reading: basicChineseDict[char].pinyin,
+              definition: basicChineseDict[char].definition,
+            });
+          }
+        }
+        // Only include if we found definitions for at least one component
+        if (componentCharacters.length === 0) {
+          componentCharacters = undefined;
+        }
+      }
+
       return {
         word,
         reading: entry.pinyin,
         definition: entry.definition,
         example: undefined,
+        componentCharacters,
       };
     }
 
     // Fallback for words not in our dictionary
+    // For multi-character words, try to at least provide component definitions
+    let componentCharacters;
+    if (word.length > 1) {
+      componentCharacters = [];
+      for (const char of word) {
+        if (basicChineseDict[char]) {
+          componentCharacters.push({
+            character: char,
+            reading: basicChineseDict[char].pinyin,
+            definition: basicChineseDict[char].definition,
+          });
+        }
+      }
+      // Only include if we found definitions for at least one component
+      if (componentCharacters.length === 0) {
+        componentCharacters = undefined;
+      }
+    }
+
     // Return a helpful message suggesting the user look it up elsewhere
     return {
       word,
       reading: '',
       definition: `Definition not yet available for "${word}". This may be a proper noun, specialized term, or less common word. You can look it up on MDBG.net or Pleco for a complete definition.`,
       example: undefined,
+      componentCharacters,
     };
   } catch (error) {
     console.error('Error looking up Chinese word:', error);
