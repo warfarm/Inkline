@@ -5,32 +5,61 @@ export interface SegmentedWord {
   reading?: string;
 }
 
+// Import the Chinese dictionary for word recognition
+import { basicChineseDict } from '../dictionaries/chinese';
+
 /**
- * Simple Chinese word segmentation
- * Note: This is a basic implementation. For production, consider using a library like nodejieba
- * For now, we segment character by character for simplicity
+ * Dictionary-based Chinese word segmentation using Forward Maximum Matching algorithm
+ * This recognizes compound words from the dictionary instead of splitting character-by-character
  * @param text - The Chinese text to segment
- * @returns Array of segmented characters with position information
+ * @returns Array of segmented words with position information
  */
 export function segmentChinese(text: string): SegmentedWord[] {
   if (!text) return [];
 
   const words: SegmentedWord[] = [];
   let currentPosition = 0;
+  const maxWordLength = 8; // Maximum word length to check (most Chinese words are 2-4 chars)
 
-  // Simple character-by-character segmentation
-  // In production, you'd want to use a proper Chinese word segmentation library
-  for (const char of text) {
-    const start = currentPosition;
-    const end = currentPosition + char.length;
+  while (currentPosition < text.length) {
+    let matched = false;
 
-    words.push({
-      text: char,
-      start,
-      end,
-    });
+    // Try to match the longest possible word first (greedy matching)
+    for (let length = Math.min(maxWordLength, text.length - currentPosition); length > 0; length--) {
+      const candidate = text.substring(currentPosition, currentPosition + length);
 
-    currentPosition = end;
+      // Check if this substring exists in our dictionary
+      if (basicChineseDict[candidate]) {
+        const start = currentPosition;
+        const end = currentPosition + length;
+
+        words.push({
+          text: candidate,
+          start,
+          end,
+          reading: basicChineseDict[candidate].pinyin,
+        });
+
+        currentPosition = end;
+        matched = true;
+        break;
+      }
+    }
+
+    // If no dictionary match found, treat as single character
+    if (!matched) {
+      const char = text[currentPosition];
+      const start = currentPosition;
+      const end = currentPosition + char.length;
+
+      words.push({
+        text: char,
+        start,
+        end,
+      });
+
+      currentPosition = end;
+    }
   }
 
   return words;
