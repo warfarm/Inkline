@@ -405,11 +405,9 @@ const basicChineseDict: Record<string, { pinyin: string; definition: string }> =
   '夏天': { pinyin: 'xiàtiān', definition: 'summer' },
   '秋天': { pinyin: 'qiūtiān', definition: 'autumn; fall' },
   '冬天': { pinyin: 'dōngtiān', definition: 'winter' },
-  // Advanced vocabulary from articles
-  '搜索': { pinyin: 'sōusuǒ', definition: 'to search; to look for' },
+  // Advanced vocabulary from articles (truly unique additions)
   '导航': { pinyin: 'dǎoháng', definition: 'navigation' },
   '社交媒体': { pinyin: 'shèjiāo méitǐ', definition: 'social media' },
-  '移动支付': { pinyin: 'yídòng zhīfù', definition: 'mobile payment' },
   '应用程序': { pinyin: 'yìngyòng chéngxù', definition: 'application program' },
   '全球': { pinyin: 'quánqiú', definition: 'global; worldwide' },
   '气候': { pinyin: 'qìhòu', definition: 'climate' },
@@ -443,21 +441,6 @@ const basicChineseDict: Record<string, { pinyin: string; definition: string }> =
   '洞察力': { pinyin: 'dòngchálì', definition: 'insight; perceptiveness' },
   '冒险': { pinyin: 'màoxiǎn', definition: 'adventure; risk; to take risks' },
   '很多': { pinyin: 'hěnduō', definition: 'many; a lot' },
-  '来': { pinyin: 'lái', definition: 'to come' },
-  '中': { pinyin: 'zhōng', definition: 'middle; center; among' },
-  '网店': { pinyin: 'wǎngdiàn', definition: 'online shop' },
-  '这': { pinyin: 'zhè', definition: 'this' },
-  '改变': { pinyin: 'gǎibiàn', definition: 'to change; to transform' },
-  '消费': { pinyin: 'xiāofèi', definition: 'consumption; to consume' },
-  '习惯': { pinyin: 'xíguàn', definition: 'habit; custom; to be accustomed to' },
-  '但': { pinyin: 'dàn', definition: 'but; however' },
-  '网络': { pinyin: 'wǎngluò', definition: 'network; internet' },
-  '问题': { pinyin: 'wèntí', definition: 'problem; question' },
-  '开设': { pinyin: 'kāishè', definition: 'to set up; to open' },
-  '许多': { pinyin: 'xǔduō', definition: 'many; much' },
-  '商店': { pinyin: 'shāngdiàn', definition: 'shop; store' },
-  '也': { pinyin: 'yě', definition: 'also; too' },
-  '了': { pinyin: 'le', definition: 'particle indicating completed action' },
 };
 
 export async function lookupChinese(word: string): Promise<DictionaryResult | null> {
