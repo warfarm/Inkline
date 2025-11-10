@@ -7,9 +7,22 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const { user, profile, loading, refreshProfile } = useAuth();
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleCallback = async () => {
+      // First, check for hash params (OAuth callback)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const errorParam = hashParams.get('error');
+      const errorDescription = hashParams.get('error_description');
+
+      if (errorParam) {
+        console.error('Auth error:', errorParam, errorDescription);
+        setError(errorDescription || errorParam);
+        setTimeout(() => navigate('/login'), 3000);
+        return;
+      }
+
       if (loading) return;
 
       if (!user) {
@@ -60,6 +73,18 @@ export default function AuthCallback() {
 
     handleCallback();
   }, [user, profile, loading, navigate, refreshProfile, isCreatingProfile]);
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="text-lg font-medium text-destructive">Authentication Error</div>
+          <div className="text-sm text-muted-foreground">{error}</div>
+          <div className="text-xs text-muted-foreground">Redirecting to login page...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">

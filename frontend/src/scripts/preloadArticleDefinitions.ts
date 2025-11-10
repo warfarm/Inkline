@@ -41,7 +41,7 @@ export async function preloadArticleDefinitions(articleId?: string) {
       }
 
       const words = article.segmented_content?.words || [];
-      const uniqueWords = [...new Set(words.map((w: any) => w.text))];
+      const uniqueWords = [...new Set(words.map((w) => (w as { text: string }).text))];
 
       console.log(`  - Found ${uniqueWords.length} unique words`);
 
@@ -102,16 +102,4 @@ export async function preloadArticleDefinitions(articleId?: string) {
   } catch (error) {
     console.error('Fatal error:', error);
   }
-}
-
-// Allow running from command line
-if (typeof window === 'undefined') {
-  const articleId = process.argv[2];
-  preloadArticleDefinitions(articleId).then(() => {
-    console.log('Done!');
-    process.exit(0);
-  }).catch((err) => {
-    console.error('Failed:', err);
-    process.exit(1);
-  });
 }
