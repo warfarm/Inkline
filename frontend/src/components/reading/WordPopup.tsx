@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { DictionaryResult } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Volume2, Pause, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Volume2, Pause, Check, ChevronDown, ChevronUp, ChevronLeft } from 'lucide-react';
 
 interface Profile {
   target_language?: string;

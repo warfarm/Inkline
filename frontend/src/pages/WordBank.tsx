@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { FlashcardPractice } from '@/components/wordbank/FlashcardPractice';
 import { toast } from 'sonner';
-import { Volume2, Pause, Check, Circle, ChevronDown, ChevronUp, Download, Languages, Filter, RotateCcw } from 'lucide-react';
+import { Volume2, Pause, Check, Circle, ChevronDown, ChevronUp, Download, Languages, RotateCcw } from 'lucide-react';
 import type { WordBankEntry } from '@/types';
 
 export default function WordBank() {

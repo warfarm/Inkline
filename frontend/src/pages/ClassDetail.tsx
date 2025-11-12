@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, Users, BookOpen, Clock } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import type { Class, Profile } from '@/types';
 
 interface StudentProgress {

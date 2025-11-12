@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { GraduationCap, Lightbulb, BookOpen } from 'lucide-react';
+import { GraduationCap, Lightbulb } from 'lucide-react';
 import type { Article } from '@/types';
 
 export default function Home() {

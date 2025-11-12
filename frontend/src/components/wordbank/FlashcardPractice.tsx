@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Volume2, Pause, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Volume2, Pause, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { WordBankEntry } from '@/types';
 
 interface Profile {
