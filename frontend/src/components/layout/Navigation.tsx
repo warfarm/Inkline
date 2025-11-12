@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 export function Navigation() {
   const navigate = useNavigate();
@@ -40,6 +47,25 @@ export function Navigation() {
               <Button variant="ghost" onClick={() => navigate('/home')}>
                 Home
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-1">
+                    Modules
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => navigate('/articles')}>
+                    Articles
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/reading')}>
+                    Reading
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    Conversation
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="ghost" onClick={() => navigate('/word-bank')}>
                 Word Bank
               </Button>

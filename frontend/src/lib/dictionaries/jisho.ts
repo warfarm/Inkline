@@ -19,12 +19,51 @@ interface JishoResponse {
 }
 
 async function fetchWithFallback(apiUrl: string): Promise<Response> {
-  const corsProxies = [
-    'https://corsproxy.io/?',
-    'https://api.allorigins.win/raw?url=',
-  ];
+  // Try Supabase Edge Function first (recommended - no CORS issues)
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (supabaseUrl) {
+    try {
+      const keyword = new URL(apiUrl).searchParams.get('keyword');
+      if (keyword) {
+        const edgeUrl = `${supabaseUrl}/functions/v1/jisho?keyword=${encodeURIComponent(keyword)}`;
 
-  // Try direct fetch first (works in some environments)
+        const response = await fetch(edgeUrl, {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+
+        if (response.ok) {
+          console.log('Using Supabase Edge Function for Jisho API');
+          return response;
+        }
+      }
+    } catch (error) {
+      console.warn('Supabase Edge Function failed, trying alternatives:', error);
+    }
+  }
+
+  // Try Vercel Edge Function (if deployed to Vercel)
+  try {
+    const keyword = new URL(apiUrl).searchParams.get('keyword');
+    if (keyword) {
+      const vercelUrl = `/api/jisho?keyword=${encodeURIComponent(keyword)}`;
+
+      const response = await fetch(vercelUrl, {
+        signal: AbortSignal.timeout(8000)
+      });
+
+      if (response.ok) {
+        console.log('Using Vercel Edge Function for Jisho API');
+        return response;
+      }
+    }
+  } catch (error) {
+    console.warn('Vercel Edge Function failed, trying alternatives:', error);
+  }
+
+  // Fallback: Try direct fetch (might work in some environments)
   try {
     const directResponse = await fetch(apiUrl, {
       signal: AbortSignal.timeout(5000)
@@ -32,14 +71,20 @@ async function fetchWithFallback(apiUrl: string): Promise<Response> {
     if (directResponse.ok) {
       const contentType = directResponse.headers.get('content-type');
       if (contentType?.includes('application/json')) {
+        console.log('Using direct Jisho API (no CORS issues)');
         return directResponse;
       }
     }
   } catch (error) {
-    // Direct fetch failed, will try proxies
+    // Direct fetch failed, will try third-party proxies
   }
 
-  // Try each CORS proxy
+  // Last resort: Try third-party CORS proxies (unreliable)
+  const corsProxies = [
+    'https://corsproxy.io/?',
+    'https://api.allorigins.win/raw?url=',
+  ];
+
   for (const proxy of corsProxies) {
     try {
       const response = await fetch(proxy + encodeURIComponent(apiUrl), {
@@ -55,6 +100,8 @@ async function fetchWithFallback(apiUrl: string): Promise<Response> {
         continue; // Try next proxy
       }
 
+      console.log('Using third-party CORS proxy (consider deploying backend proxy)');
+
       // Return a new Response with the text
       return new Response(text, {
         status: response.status,
@@ -66,7 +113,7 @@ async function fetchWithFallback(apiUrl: string): Promise<Response> {
     }
   }
 
-  throw new Error('All CORS proxies failed');
+  throw new Error('All API methods failed - please deploy a backend proxy function');
 }
 
 export async function lookupJapanese(word: string): Promise<DictionaryResult | null> {

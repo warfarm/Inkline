@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { FlashcardPractice } from '@/components/wordbank/FlashcardPractice';
 import { toast } from 'sonner';
+import { Volume2, Pause, Check, Circle, ChevronDown, ChevronUp, Download, Languages, Filter, RotateCcw } from 'lucide-react';
 import type { WordBankEntry } from '@/types';
 
 export default function WordBank() {
@@ -356,6 +357,7 @@ export default function WordBank() {
                 onClick={() => setLanguageFilter('all')}
                 size="sm"
               >
+                <Languages className="mr-2 h-4 w-4" />
                 All Languages
               </Button>
               <Button
@@ -363,14 +365,14 @@ export default function WordBank() {
                 onClick={() => setLanguageFilter('ja')}
                 size="sm"
               >
-                🇯🇵 Japanese
+                Japanese
               </Button>
               <Button
                 variant={languageFilter === 'zh' ? 'default' : 'outline'}
                 onClick={() => setLanguageFilter('zh')}
                 size="sm"
               >
-                🇨🇳 Chinese
+                Chinese
               </Button>
             </div>
           </div>
@@ -379,6 +381,7 @@ export default function WordBank() {
             {filteredWords.length > 0 && (
               <>
                 <Button onClick={handleExportToFlashcards} variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
                   Export to CSV
                 </Button>
                 <Button onClick={() => setPracticeMode(true)} variant="default">
@@ -412,7 +415,8 @@ export default function WordBank() {
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             className="w-full md:w-auto"
           >
-            {showAdvancedFilters ? '▲' : '▼'} Advanced Filters
+            {showAdvancedFilters ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
+            Advanced Filters
           </Button>
         </div>
 
@@ -647,6 +651,7 @@ export default function WordBank() {
                   }}
                   className="w-full"
                 >
+                  <RotateCcw className="mr-2 h-4 w-4" />
                   Reset Advanced Filters
                 </Button>
               </div>
@@ -690,19 +695,21 @@ export default function WordBank() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle className="text-2xl">{word.word}</CardTitle>
                         <span className="text-xs px-2 py-0.5 rounded bg-muted border border-border">
-                          {word.language === 'ja' ? '🇯🇵 JP' : '🇨🇳 ZH'}
+                          {word.language === 'ja' ? 'JP' : 'ZH'}
                         </span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleSpeak(word.word, word.id)}
                           disabled={speakingWords.has(word.id)}
-                          className="h-8 w-8 p-0 text-lg transition-transform hover:scale-110"
+                          className="h-8 w-8 p-0 transition-transform hover:scale-110"
                           title="Listen to pronunciation"
                         >
-                          <span className="inline-block transition-transform hover:scale-125">
-                            {speakingWords.has(word.id) ? '⏸' : '🔊'}
-                          </span>
+                          {speakingWords.has(word.id) ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Volume2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                       {word.reading && (
@@ -714,7 +721,11 @@ export default function WordBank() {
                       variant={word.status === 'mastered' ? 'default' : 'outline'}
                       onClick={() => toggleWordStatus(word.id, word.status)}
                     >
-                      {word.status === 'mastered' ? '✓' : '○'}
+                      {word.status === 'mastered' ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Circle className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </CardHeader>
@@ -745,7 +756,17 @@ export default function WordBank() {
                       onClick={() => toggleCardExpansion(word.id)}
                       className="w-full text-xs"
                     >
-                      {isExpanded ? '▲ Show Less' : `▼ Show More${word.example_sentence || word.usage_notes || (word.additional_definitions && word.additional_definitions.length > 1) ? ' (Examples, Notes & More)' : ' (Add Notes)'}`}
+                      {isExpanded ? (
+                        <>
+                          <ChevronUp className="mr-2 h-3 w-3" />
+                          Show Less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="mr-2 h-3 w-3" />
+                          Show More{word.example_sentence || word.usage_notes || (word.additional_definitions && word.additional_definitions.length > 1) ? ' (Examples, Notes & More)' : ' (Add Notes)'}
+                        </>
+                      )}
                     </Button>
                   )}
 

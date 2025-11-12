@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { ChevronLeft, User, Palette, Globe, Sparkles, MousePointer, X, Save } from 'lucide-react';
 
 const LEVELS = [
   {
@@ -33,6 +34,7 @@ const LEVELS = [
 const LANGUAGES = [
   { value: 'zh', label: 'Chinese (Simplified)' },
   { value: 'ja', label: 'Japanese' },
+  { value: 'ko', label: 'Korean' },
 ] as const;
 
 const TOPIC_OPTIONS = [
@@ -89,14 +91,39 @@ export default function Settings() {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [customInterest, setCustomInterest] = useState('');
 
+  // Track original values to detect changes
+  const [originalValues, setOriginalValues] = useState({
+    displayName: '',
+    level: '',
+    language: '',
+    topics: [] as string[],
+    popupMode: 'click' as 'hover' | 'click',
+    panelPosition: 'right' as 'left' | 'right',
+    theme: 'light' as 'light' | 'dark' | 'sepia' | 'night',
+  });
+
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize values from profile (only once)
   useEffect(() => {
-    if (profile) {
-      setDisplayName(profile.display_name || '');
-      setSelectedLevel(profile.current_level || '');
-      setSelectedLanguage(profile.target_language || '');
-      setSelectedTopics(profile.interests || []);
+    if (profile && !isInitialized) {
+      const values = {
+        displayName: profile.display_name || '',
+        level: profile.current_level || '',
+        language: profile.target_language || '',
+        topics: profile.interests || [],
+        popupMode,
+        panelPosition,
+        theme,
+      };
+      setDisplayName(values.displayName);
+      setSelectedLevel(values.level);
+      setSelectedLanguage(values.language);
+      setSelectedTopics(values.topics);
+      setOriginalValues(values);
+      setIsInitialized(true);
     }
-  }, [profile]);
+  }, [profile, popupMode, panelPosition, theme, isInitialized]);
 
   const handleTopicToggle = (topic: string) => {
     setSelectedTopics((prev) =>
@@ -104,10 +131,41 @@ export default function Settings() {
     );
   };
 
+  // Check if there are unsaved changes
+  const hasChanges = () => {
+    if (displayName !== originalValues.displayName) return true;
+    if (selectedLevel !== originalValues.level) return true;
+    if (selectedLanguage !== originalValues.language) return true;
+    if (popupMode !== originalValues.popupMode) return true;
+    if (panelPosition !== originalValues.panelPosition) return true;
+    if (theme !== originalValues.theme) return true;
+    if (customInterest.trim()) return true;
+    if (selectedTopics.length !== originalValues.topics.length) return true;
+    if (selectedTopics.some((t) => !originalValues.topics.includes(t))) return true;
+    return false;
+  };
+
+  const handleCancel = () => {
+    // Reset all values to original
+    setDisplayName(originalValues.displayName);
+    setSelectedLevel(originalValues.level);
+    setSelectedLanguage(originalValues.language);
+    setSelectedTopics(originalValues.topics);
+    setCustomInterest('');
+    setPopupMode(originalValues.popupMode);
+    setPanelPosition(originalValues.panelPosition);
+    setTheme(originalValues.theme);
+  };
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
     setLoading(true);
+    const languageChanged = selectedLanguage !== originalValues.language;
 
     try {
       const interests = [...selectedTopics];
@@ -130,9 +188,28 @@ export default function Settings() {
 
       await refreshProfile();
 
+      // Update original values to reflect saved state
+      setOriginalValues({
+        displayName,
+        level: selectedLevel,
+        language: selectedLanguage,
+        topics: interests,
+        popupMode,
+        panelPosition,
+        theme,
+      });
+      setCustomInterest('');
+
       toast.success('Settings updated', {
         description: 'Your preferences have been saved successfully.',
       });
+
+      // If language was changed, redirect to home page
+      if (languageChanged) {
+        setTimeout(() => {
+          navigate('/');
+        }, 500); // Small delay to show the success toast
+      }
     } catch (err) {
       console.error('Error updating settings:', err);
       toast.error('Failed to update settings', {
@@ -153,22 +230,26 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="sticky top-0 z-40 border-b bg-background shadow-sm">
+      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md shadow-sm">
         <div className="container mx-auto max-w-4xl flex items-center justify-between px-4 py-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            ← Back
+          <Button variant="ghost" size="sm" onClick={handleBack}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
           </Button>
           <h1 className="text-lg font-semibold">Settings</h1>
           <div className="w-20"></div>
         </div>
       </header>
 
-      <div className="container mx-auto max-w-4xl py-8 px-4">
+      <div className={`container mx-auto max-w-4xl py-8 px-4 transition-all ${hasChanges() ? 'pb-32' : 'pb-8'}`}>
 
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profile Information
+            </CardTitle>
             <CardDescription>Update your display name</CardDescription>
           </CardHeader>
           <CardContent>
@@ -186,7 +267,10 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Appearance</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Appearance
+            </CardTitle>
             <CardDescription>
               Choose your preferred color theme
             </CardDescription>
@@ -234,7 +318,10 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Language & Level</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Language & Level
+            </CardTitle>
             <CardDescription>
               Change your target language and current skill level
             </CardDescription>
@@ -317,7 +404,10 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Interests</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              Interests
+            </CardTitle>
             <CardDescription>
               Select topics you're interested in to get better article recommendations
             </CardDescription>
@@ -352,7 +442,10 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Reading Preferences</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MousePointer className="h-5 w-5" />
+              Reading Preferences
+            </CardTitle>
             <CardDescription>
               Customize how you interact with words while reading
             </CardDescription>
@@ -494,13 +587,28 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? 'Saving...' : 'Save Changes'}
-          </Button>
+      </div>
+
+      {/* Sticky action bar that appears when changes are made */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-md shadow-lg transition-transform duration-300 ease-in-out ${
+          hasChanges() ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div className="container mx-auto max-w-4xl px-4 py-4 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            You have unsaved changes
+          </p>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleCancel} disabled={loading}>
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={loading}>
+              <Save className="mr-2 h-4 w-4" />
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
       </div>
       </div>

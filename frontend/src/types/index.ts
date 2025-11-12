@@ -1,7 +1,9 @@
 export type UserRole = 'student' | 'teacher';
-export type Language = 'zh' | 'ja';
+export type Language = 'zh' | 'ja' | 'ko';
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
 export type WordStatus = 'learning' | 'mastered';
+export type ArticleLength = 'short' | 'medium' | 'long';
+export type FormalityLevel = 'casual' | 'polite' | 'formal';
 
 export interface Profile {
   id: string;
@@ -104,7 +106,7 @@ export interface DictionaryResult {
   }>;
   examples?: string[];
   grammarNotes?: string;
-  formalityLevel?: 'casual' | 'polite' | 'formal';
+  formalityLevel?: 'casual' | 'polite' | 'formal' | 'honorific';
   usageNotes?: string;
   example?: string; // Kept for backwards compatibility
   componentCharacters?: Array<{
@@ -112,4 +114,59 @@ export interface DictionaryResult {
     reading: string;
     definition: string;
   }>;
+  // Korean-specific fields
+  conjugationInfo?: {
+    dictionaryForm: string;
+    conjugatedForm: string;
+    conjugationType?: string; // e.g., "present polite", "past casual"
+  };
+  particleBreakdown?: {
+    stem: string;
+    particle: string;
+    particleDefinition: string;
+  };
+}
+
+export interface GeneratedArticle {
+  id: string;
+  user_id: string;
+  language: Language;
+  difficulty_level: DifficultyLevel;
+  topic: string;
+  title: string;
+  content: string;
+  segmented_content: {
+    words: Array<{
+      text: string;
+      start: number;
+      end: number;
+      reading?: string;
+    }>;
+  };
+  word_count: number;
+  target_words: string[];
+  grammar_points: Array<{
+    structure: string;
+    explanation: string;
+    example: string;
+  }>;
+  word_definitions?: Record<string, {
+    reading?: string;
+    definition?: string;
+    example?: string;
+    grammarNotes?: string;
+    formalityLevel?: 'casual' | 'polite' | 'formal';
+    usageNotes?: string;
+    definitions?: Array<{
+      meaning: string;
+      partOfSpeech?: string;
+    }>;
+    examples?: string[];
+  }>;
+  generation_prompt: string;
+  word_bank_words_used: string[];
+  is_favorite: boolean;
+  is_test_article: boolean;
+  article_length: ArticleLength;
+  created_at: string;
 }

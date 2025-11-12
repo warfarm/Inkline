@@ -5,6 +5,7 @@ import { useWordPopupMode } from '@/hooks/useWordPopupMode';
 import { supabase } from '@/lib/supabase';
 import { lookupJapanese } from '@/lib/dictionaries/jisho';
 import { lookupChinese } from '@/lib/dictionaries/chinese';
+import { lookupKorean } from '@/lib/dictionaries/korean';
 import { segmentText } from '@/lib/segmentation';
 import { WordPopup } from './WordPopup';
 import { PhrasePopup } from './PhrasePopup';
@@ -14,9 +15,10 @@ import type { Article, DictionaryResult } from '@/types';
 interface ArticleReaderProps {
   article: Article;
   onComplete?: () => void;
+  isGenerated?: boolean;
 }
 
-export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
+export function ArticleReader({ article, onComplete, isGenerated = false }: ArticleReaderProps) {
   const { user, profile } = useAuth();
   const { mode: popupMode } = useWordPopupMode();
   const startTimeRef = useRef<number>(Date.now());
@@ -44,6 +46,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
   const [savedWords, setSavedWords] = useState<Set<string>>(new Set());
+  const [readingHistoryId, setReadingHistoryId] = useState<string | null>(null);
 
   // Auto-segment full content if segmented_content is incomplete
   const segmentedWords = useMemo(() => {
@@ -161,6 +164,152 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // Initialize or fetch existing reading history on mount
+  useEffect(() => {
+    const initializeReadingHistory = async () => {
+      if (!user) return;
+
+      try {
+        // Build the query to check for existing record
+        let query = supabase
+          .from('reading_history')
+          .select('id, time_spent_seconds')
+          .eq('user_id', user.id);
+
+        // Add the appropriate article_id filter
+        if (isGenerated) {
+          query = query.eq('generated_article_id', article.id);
+        } else {
+          query = query.eq('article_id', article.id);
+        }
+
+        const { data: existing, error: fetchError } = await query.maybeSingle();
+
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.error('Error fetching reading history:', fetchError);
+          return;
+        }
+
+        if (existing) {
+          // Use existing record and reset the start time based on already tracked time
+          setReadingHistoryId(existing.id);
+          // Adjust start time to account for previously tracked time
+          if (existing.time_spent_seconds > 0) {
+            startTimeRef.current = Date.now() - (existing.time_spent_seconds * 1000);
+          }
+          console.log('Resuming reading session:', { id: existing.id, previousTime: existing.time_spent_seconds });
+        } else {
+          // Create new record using upsert to handle race conditions
+          const insertData: any = {
+            user_id: user.id,
+            time_spent_seconds: 0,
+            words_saved_count: 0,
+            article_source: isGenerated ? 'generated_articles' : 'articles',
+          };
+
+          if (isGenerated) {
+            insertData.generated_article_id = article.id;
+          } else {
+            insertData.article_id = article.id;
+          }
+
+          const { data: newRecord, error: insertError } = await supabase
+            .from('reading_history')
+            .upsert(insertData, {
+              onConflict: isGenerated ? 'user_id,generated_article_id' : 'user_id,article_id',
+              ignoreDuplicates: false
+            })
+            .select('id')
+            .single();
+
+          if (insertError) {
+            console.error('Error creating reading history:', insertError);
+          } else if (newRecord) {
+            setReadingHistoryId(newRecord.id);
+            console.log('Created new reading session:', { id: newRecord.id });
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing reading history:', error);
+      }
+    };
+
+    initializeReadingHistory();
+  }, [user, article.id, isGenerated]);
+
+  // Periodic save effect (every 30 seconds)
+  useEffect(() => {
+    if (!user || !readingHistoryId) return;
+
+    const saveProgress = async () => {
+      const timeSpentSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+
+      try {
+        const { error } = await supabase
+          .from('reading_history')
+          .update({
+            time_spent_seconds: timeSpentSeconds,
+            words_saved_count: wordsSaved,
+          })
+          .eq('id', readingHistoryId);
+
+        if (error) {
+          console.error('Error saving progress:', error);
+        } else {
+          console.log('Progress auto-saved:', { timeSpentSeconds, wordsSaved });
+        }
+      } catch (error) {
+        console.error('Error in periodic save:', error);
+      }
+    };
+
+    // Save every 30 seconds
+    const interval = setInterval(saveProgress, 30000);
+
+    return () => clearInterval(interval);
+  }, [user, readingHistoryId, wordsSaved]);
+
+  // Save on page unload/exit
+  useEffect(() => {
+    if (!user || !readingHistoryId) return;
+
+    const handleBeforeUnload = async () => {
+      const timeSpentSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+
+      // Use sendBeacon for reliable data sending during page unload
+      const updateData = {
+        time_spent_seconds: timeSpentSeconds,
+        words_saved_count: wordsSaved,
+      };
+
+      try {
+        await supabase
+          .from('reading_history')
+          .update(updateData)
+          .eq('id', readingHistoryId);
+      } catch (error) {
+        console.error('Error saving on unload:', error);
+      }
+    };
+
+    // Add both beforeunload and visibility change handlers
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleBeforeUnload();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      // Save one final time when component unmounts
+      handleBeforeUnload();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, readingHistoryId, wordsSaved]);
+
   // Scroll tracking effect
   useEffect(() => {
     const handleScroll = () => {
@@ -181,18 +330,29 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
   }, [hasTrackedCompletion, wordsSaved]);
 
   const trackCompletion = async () => {
-    if (!user || hasTrackedCompletion) return;
+    if (!user || hasTrackedCompletion || !readingHistoryId) return;
 
     setHasTrackedCompletion(true);
     const timeSpentSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
     try {
-      await supabase.from('reading_history').insert({
-        user_id: user.id,
-        article_id: article.id,
-        time_spent_seconds: timeSpentSeconds,
-        words_saved_count: wordsSaved,
-      });
+      // Update the existing record with final time and mark as completed
+      const { error } = await supabase
+        .from('reading_history')
+        .update({
+          time_spent_seconds: timeSpentSeconds,
+          words_saved_count: wordsSaved,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', readingHistoryId);
+
+      if (error) {
+        console.error('Error tracking completion:', error);
+        toast.error('Failed to save reading progress');
+        return;
+      }
+
+      console.log('Article completed:', { timeSpentSeconds, wordsSaved });
 
       // Trigger feedback UI
       if (onComplete) {
@@ -200,6 +360,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       }
     } catch (error) {
       console.error('Error tracking completion:', error);
+      toast.error('Failed to save reading progress');
     }
   };
 
@@ -210,7 +371,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
     hasResultRef.current = false;
 
     try {
-      let result = null;
+      let result: DictionaryResult | null = null;
 
       // Check if definition is preloaded in article
       if (article.word_definitions && article.word_definitions[word]) {
@@ -227,11 +388,22 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           examples: preloaded.examples,
         };
         console.log('Using preloaded definition for:', word);
+
+        // For Chinese multi-character words, fetch character breakdown from dictionary
+        // (preloaded definitions don't include componentCharacters)
+        if (article.language === 'zh' && word.length > 1) {
+          const fullResult = await lookupChinese(word);
+          if (fullResult?.componentCharacters) {
+            result.componentCharacters = fullResult.componentCharacters;
+          }
+        }
       } else {
         // Fallback to API lookup
         result =
           article.language === 'ja'
             ? await lookupJapanese(word)
+            : article.language === 'ko'
+            ? await lookupKorean(word)
             : await lookupChinese(word);
         console.log('Fetched definition via API for:', word);
       }
@@ -250,12 +422,22 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       }
 
       if (user) {
-        await supabase.from('word_interactions').insert({
+        // Build the insert data based on article source
+        const insertData: any = {
           user_id: user.id,
-          article_id: article.id,
           word,
           interaction_type: 'click',
-        });
+          article_source: isGenerated ? 'generated_articles' : 'articles',
+        };
+
+        // Add the appropriate article ID field
+        if (isGenerated) {
+          insertData.generated_article_id = article.id;
+        } else {
+          insertData.article_id = article.id;
+        }
+
+        await supabase.from('word_interactions').insert(insertData);
       }
     } catch (error) {
       console.error('Error fetching definition:', error);
@@ -410,12 +592,22 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         throw insertError;
       }
 
-      await supabase.from('word_interactions').insert({
+      // Build the insert data based on article source
+      const wordInteractionData: any = {
         user_id: user.id,
-        article_id: article.id,
         word: dictionaryResult.word,
         interaction_type: 'save',
-      });
+        article_source: isGenerated ? 'generated_articles' : 'articles',
+      };
+
+      // Add the appropriate article ID field
+      if (isGenerated) {
+        wordInteractionData.generated_article_id = article.id;
+      } else {
+        wordInteractionData.article_id = article.id;
+      }
+
+      await supabase.from('word_interactions').insert(wordInteractionData);
 
       setWordsSaved((prev) => prev + 1);
       setSavedWords(prev => new Set([...prev, dictionaryResult.word]));
@@ -492,6 +684,8 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         result =
           article.language === 'ja'
             ? await lookupJapanese(phrase)
+            : article.language === 'ko'
+            ? await lookupKorean(phrase)
             : await lookupChinese(phrase);
         console.log('Fetched phrase definition via API for:', phrase);
       }
@@ -508,12 +702,22 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
       }
 
       if (user) {
-        await supabase.from('word_interactions').insert({
+        // Build the insert data based on article source
+        const phraseInteractionData: any = {
           user_id: user.id,
-          article_id: article.id,
           word: phrase,
           interaction_type: 'phrase_highlight',
-        });
+          article_source: isGenerated ? 'generated_articles' : 'articles',
+        };
+
+        // Add the appropriate article ID field
+        if (isGenerated) {
+          phraseInteractionData.generated_article_id = article.id;
+        } else {
+          phraseInteractionData.article_id = article.id;
+        }
+
+        await supabase.from('word_interactions').insert(phraseInteractionData);
       }
     } catch (error) {
       console.error('Error fetching phrase definition:', error);
@@ -546,12 +750,22 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
         additional_definitions: phraseResult.definitions ? JSON.stringify(phraseResult.definitions) : null,
       });
 
-      await supabase.from('word_interactions').insert({
+      // Build the insert data based on article source
+      const phraseSaveData: any = {
         user_id: user.id,
-        article_id: article.id,
         word: phraseResult.word,
         interaction_type: 'save',
-      });
+        article_source: isGenerated ? 'generated_articles' : 'articles',
+      };
+
+      // Add the appropriate article ID field
+      if (isGenerated) {
+        phraseSaveData.generated_article_id = article.id;
+      } else {
+        phraseSaveData.article_id = article.id;
+      }
+
+      await supabase.from('word_interactions').insert(phraseSaveData);
 
       setWordsSaved((prev) => prev + 1);
       setSavedWords(prev => new Set([...prev, phraseResult.word]));
@@ -630,7 +844,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
 
       {selectedWord && loading && createPortal(
         <div
-          className="fixed rounded-md bg-background border p-4 shadow-lg"
+          className="fixed rounded-md backdrop-blur-md bg-background/80 border border-primary/20 px-3 py-2 shadow-lg text-sm"
           style={{
             top: selectedWord.position.y,
             left: selectedWord.position.x,
@@ -653,6 +867,7 @@ export function ArticleReader({ article, onComplete }: ArticleReaderProps) {
           onMouseEnter={handlePopupMouseEnter}
           onMouseLeave={handlePopupMouseLeave}
           profile={profile}
+          isInWordBank={savedWords.has(dictionaryResult.word)}
         />
       )}
 

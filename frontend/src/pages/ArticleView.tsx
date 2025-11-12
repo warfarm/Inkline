@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWordBankPanelPosition } from '@/hooks/useWordBankPanelPosition';
 import { supabase } from '@/lib/supabase';
@@ -7,12 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArticleReader } from '@/components/reading/ArticleReader';
 import { ArticleFeedback } from '@/components/reading/ArticleFeedback';
+import { SegmentedTitle } from '@/components/reading/SegmentedTitle';
+import { X, Menu, Settings as SettingsIcon, BookOpen, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Article, WordBankEntry } from '@/types';
 
 export default function ArticleView() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { position: panelPosition } = useWordBankPanelPosition();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,8 @@ export default function ArticleView() {
   const [expandedPanelCards, setExpandedPanelCards] = useState<Set<string>>(new Set());
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
+  const isGenerated = searchParams.get('source') === 'generated';
+
   useEffect(() => {
     if (id) {
       fetchArticle(id);
@@ -31,8 +36,9 @@ export default function ArticleView() {
 
   const fetchArticle = async (articleId: string) => {
     try {
+      const tableName = isGenerated ? 'generated_articles' : 'articles';
       const { data, error } = await supabase
-        .from('articles')
+        .from(tableName)
         .select('*')
         .eq('id', articleId)
         .single();
@@ -129,9 +135,12 @@ export default function ArticleView() {
         >
           <div className="p-4 border-b sticky top-0 bg-card/100 z-[70]" style={{ backgroundColor: 'hsl(var(--card))' }}>
             <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-lg">My Word Bank</h2>
+              <h2 className="font-semibold text-lg flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                My Word Bank
+              </h2>
               <Button variant="ghost" size="sm" onClick={() => setShowWordBank(false)}>
-                ✕
+                <X className="h-4 w-4" />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">Latest 50 saved words</p>
@@ -195,7 +204,17 @@ export default function ArticleView() {
                             onClick={() => togglePanelCardExpansion(word.id)}
                             className="w-full text-xs h-7"
                           >
-                            {isExpanded ? '▲ Show Less' : '▼ Show More'}
+                            {isExpanded ? (
+                              <>
+                                <ChevronUp className="mr-1 h-3 w-3" />
+                                Show Less
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="mr-1 h-3 w-3" />
+                                Show More
+                              </>
+                            )}
                           </Button>
                         )}
 
@@ -272,7 +291,7 @@ export default function ArticleView() {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 border-b bg-background shadow-sm">
+      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md shadow-sm">
         <div className="container mx-auto grid grid-cols-3 items-center gap-2 px-4 sm:px-6 py-3 sm:py-4">
           {/* Mobile: Hamburger Menu */}
           <div className="flex justify-start sm:hidden">
@@ -280,31 +299,37 @@ export default function ArticleView() {
               variant="ghost"
               size="sm"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="h-10 w-10 p-0 text-xl"
+              className="h-10 w-10 p-0"
             >
-              {showMobileMenu ? '✕' : '☰'}
+              {showMobileMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
 
           {/* Desktop: Back Button */}
           <div className="hidden sm:flex justify-start">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="text-sm sm:text-base">
-              ← Back
+            <Button variant="ghost" size="sm" onClick={() => navigate(isGenerated ? '/reading' : '/home')} className="text-sm sm:text-base">
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back
             </Button>
           </div>
 
-          <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate text-center">{article.title}</h1>
+          <SegmentedTitle
+            title={article.title}
+            language={article.language}
+            className="text-sm sm:text-lg font-semibold text-foreground text-center"
+            profile={profile}
+          />
 
           {/* Desktop: Action Buttons */}
           <div className="hidden sm:flex gap-2 justify-end">
             <Button
               variant="ghost"
               size="sm"
-              className="h-12 w-12 p-0 text-2xl"
+              className="h-12 w-12 p-0"
               onClick={() => navigate('/settings')}
               title="Settings"
             >
-              ⚙️
+              <SettingsIcon className="h-5 w-5" />
             </Button>
             <Button
               variant="outline"
@@ -312,6 +337,7 @@ export default function ArticleView() {
               className="text-sm whitespace-nowrap"
               onClick={() => setShowWordBank(!showWordBank)}
             >
+              <BookOpen className="mr-2 h-4 w-4" />
               {showWordBank ? 'Close' : 'Word Bank'}
             </Button>
           </div>
@@ -322,17 +348,18 @@ export default function ArticleView() {
 
         {/* Mobile Menu Dropdown */}
         {showMobileMenu && (
-          <div className="sm:hidden border-t bg-background/95 backdrop-blur">
+          <div className="sm:hidden border-t bg-background/80 backdrop-blur-md">
             <div className="container mx-auto px-4 py-2 space-y-1">
               <Button
                 variant="ghost"
                 className="w-full justify-start text-left"
                 onClick={() => {
-                  navigate('/home');
+                  navigate(isGenerated ? '/reading' : '/home');
                   setShowMobileMenu(false);
                 }}
               >
-                ← Back to Home
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Back to {isGenerated ? 'Reading' : 'Home'}
               </Button>
               <Button
                 variant="ghost"
@@ -342,7 +369,8 @@ export default function ArticleView() {
                   setShowMobileMenu(false);
                 }}
               >
-                📚 {showWordBank ? 'Close' : 'Open'} Word Bank
+                <BookOpen className="mr-2 h-4 w-4" />
+                {showWordBank ? 'Close' : 'Open'} Word Bank
               </Button>
               <Button
                 variant="ghost"
@@ -352,7 +380,8 @@ export default function ArticleView() {
                   setShowMobileMenu(false);
                 }}
               >
-                ⚙️ Settings
+                <SettingsIcon className="mr-2 h-4 w-4" />
+                Settings
               </Button>
             </div>
           </div>
@@ -360,7 +389,7 @@ export default function ArticleView() {
       </header>
 
       <main className="container mx-auto max-w-4xl px-4 sm:px-6 py-6 sm:py-8 pb-28 sm:pb-32 space-y-6 sm:space-y-8">
-        <ArticleReader article={article} onComplete={handleArticleComplete} />
+        <ArticleReader article={article} onComplete={handleArticleComplete} isGenerated={isGenerated} />
 
         {showFeedback && user && (
           <ArticleFeedback

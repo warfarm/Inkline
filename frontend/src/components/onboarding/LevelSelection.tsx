@@ -10,6 +10,7 @@ const LEVELS = [
     description: 'I know basic phrases and can read simple sentences (~100-500 words)',
     sampleZh: '我喜欢学习中文。',
     sampleJa: '私は日本語を勉強します。',
+    sampleKo: '저는 한국어를 공부합니다.',
   },
   {
     value: 'intermediate',
@@ -17,6 +18,7 @@ const LEVELS = [
     description: 'I can read short articles with some help',
     sampleZh: '今天天气很好，我想去公园散步。',
     sampleJa: '今日はいい天気なので、公園を散歩したいです。',
+    sampleKo: '오늘 날씨가 좋아서 공원에 산책하고 싶어요.',
   },
   {
     value: 'advanced',
@@ -24,12 +26,14 @@ const LEVELS = [
     description: "I'm comfortable reading most content with occasional lookups",
     sampleZh: '随着科技的发展，人工智能正在改变我们的生活方式。',
     sampleJa: '技術の進歩により、人工知能が私たちの生活様式を変えています。',
+    sampleKo: '기술의 발전으로 인공지능이 우리의 생활 방식을 바꾸고 있습니다.',
   },
 ] as const;
 
 const LANGUAGES = [
   { value: 'zh', label: 'Chinese (Simplified)' },
   { value: 'ja', label: 'Japanese' },
+  { value: 'ko', label: 'Korean' },
 ] as const;
 
 interface LevelSelectionProps {
@@ -125,7 +129,7 @@ export function LevelSelection({ onNext, onBack }: LevelSelectionProps) {
                   <div className="text-sm text-muted-foreground">{level.description}</div>
                   {selectedLanguage && (
                     <div className="mt-2 text-sm italic text-gray-600">
-                      Example: {selectedLanguage === 'zh' ? level.sampleZh : level.sampleJa}
+                      Example: {selectedLanguage === 'zh' ? level.sampleZh : selectedLanguage === 'ja' ? level.sampleJa : level.sampleKo}
                     </div>
                   )}
                 </div>

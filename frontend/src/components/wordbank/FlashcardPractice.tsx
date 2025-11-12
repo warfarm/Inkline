@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { Volume2, Pause, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { WordBankEntry } from '@/types';
 
 interface Profile {
@@ -193,10 +194,14 @@ export function FlashcardPractice({ words, onExit, onMarkMastered, profile }: Fl
                     handleSpeak();
                   }}
                   disabled={isSpeaking}
-                  className="h-12 w-12 p-0 text-2xl"
+                  className="h-12 w-12 p-0"
                   title="Listen to pronunciation"
                 >
-                  {isSpeaking ? '⏸' : '🔊'}
+                  {isSpeaking ? (
+                    <Pause className="h-6 w-6" />
+                  ) : (
+                    <Volume2 className="h-6 w-6" />
+                  )}
                 </Button>
               </div>
               {currentWord.reading && (
@@ -219,10 +224,14 @@ export function FlashcardPractice({ words, onExit, onMarkMastered, profile }: Fl
                     handleSpeak();
                   }}
                   disabled={isSpeaking}
-                  className="h-10 w-10 p-0 text-xl"
+                  className="h-10 w-10 p-0"
                   title="Listen to pronunciation"
                 >
-                  {isSpeaking ? '⏸' : '🔊'}
+                  {isSpeaking ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Volume2 className="h-5 w-5" />
+                  )}
                 </Button>
               </div>
               {currentWord.reading && (
@@ -246,7 +255,7 @@ export function FlashcardPractice({ words, onExit, onMarkMastered, profile }: Fl
           variant="outline"
           onClick={handlePrevious}
         >
-          ← Previous (B)
+          <ChevronLeft className="inline h-4 w-4" /> Previous (B)
         </Button>
 
         <div className="flex gap-2">
@@ -267,7 +276,7 @@ export function FlashcardPractice({ words, onExit, onMarkMastered, profile }: Fl
           variant="outline"
           onClick={handleNext}
         >
-          Next (N) →
+          Next (N) <ChevronRight className="inline h-4 w-4" />
         </Button>
       </div>
 
@@ -276,8 +285,8 @@ export function FlashcardPractice({ words, onExit, onMarkMastered, profile }: Fl
         <CardContent className="p-4">
           <div className="text-xs text-muted-foreground grid grid-cols-2 md:grid-cols-4 gap-2">
             <div><kbd className="px-2 py-1 bg-background rounded">Space</kbd> Flip</div>
-            <div><kbd className="px-2 py-1 bg-background rounded">N/→</kbd> Next</div>
-            <div><kbd className="px-2 py-1 bg-background rounded">B/P/←</kbd> Previous</div>
+            <div><kbd className="px-2 py-1 bg-background rounded">N/<ChevronRight className="inline h-3 w-3" /></kbd> Next</div>
+            <div><kbd className="px-2 py-1 bg-background rounded">B/P/<ChevronLeft className="inline h-3 w-3" /></kbd> Previous</div>
             <div><kbd className="px-2 py-1 bg-background rounded">M</kbd> Mark Mastered</div>
           </div>
         </CardContent>

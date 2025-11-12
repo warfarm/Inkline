@@ -1,4 +1,5 @@
 import type { DictionaryResult } from '@/types';
+import { convertPinyin } from './pinyin-converter';
 
 // Basic Chinese dictionary using CC-CEDICT-like data
 // This is a simplified version - in production, you'd load full CC-CEDICT data
@@ -876,24 +877,308 @@ export const basicChineseDict: Record<string, { pinyin: string; definition: stri
   '跨界': { pinyin: 'kuàjiè', definition: 'cross-boundary; interdisciplinary' },
   '合作': { pinyin: 'hézuò', definition: 'cooperation; to cooperate' },
   '开放式': { pinyin: 'kāifàngshì', definition: 'open-type; open' },
+  // Additional entries - missing from articles
+  '功': { pinyin: 'gōng', definition: 'merit; achievement; skill; work' },
+  '于': { pinyin: 'yú', definition: 'in; at; to; from' },
+  '如': { pinyin: 'rú', definition: 'as; like; if' },
+  '才': { pinyin: 'cái', definition: 'ability; talent; just; only then' },
+  '正': { pinyin: 'zhèng', definition: 'just; right; correct; straight' },
+  '着': { pinyin: 'zhe', definition: 'particle indicating continuing action' },
+  '碳': { pinyin: 'tàn', definition: 'carbon' },
+  '等': { pinyin: 'děng', definition: 'to wait; rank; equal; etc.' },
+  '三次': { pinyin: 'sān cì', definition: 'three times' },
+  '上涨': { pinyin: 'shàngzhǎng', definition: 'to rise; to go up' },
+  '不仅': { pinyin: 'bùjǐn', definition: 'not only' },
+  '不同': { pinyin: 'bùtóng', definition: 'different; not the same' },
+  '不断': { pinyin: 'bùduàn', definition: 'continuous; unceasing; constantly' },
+  '严重': { pinyin: 'yánzhòng', definition: 'serious; grave; severe' },
+  '个人': { pinyin: 'gèrén', definition: 'individual; personal' },
+  '为了': { pinyin: 'wèile', definition: 'in order to; for the purpose of' },
+  '之间': { pinyin: 'zhījiān', definition: 'between; among' },
+  '交通': { pinyin: 'jiāotōng', definition: 'traffic; transportation' },
+  '人们': { pinyin: 'rénmen', definition: 'people' },
+  '从中': { pinyin: 'cóngzhōng', definition: 'from within; from among' },
+  '企业': { pinyin: 'qǐyè', definition: 'enterprise; company; business' },
+  '保护': { pinyin: 'bǎohù', definition: 'to protect; protection' },
+  '做出': { pinyin: 'zuòchū', definition: 'to make; to produce; to issue' },
+  '储存': { pinyin: 'chǔcún', definition: 'to store; storage' },
+  '公众': { pinyin: 'gōngzhòng', definition: 'public; the public' },
+  '共同': { pinyin: 'gòngtóng', definition: 'common; joint; together' },
+  '关注': { pinyin: 'guānzhù', definition: 'to pay attention to; to follow with interest' },
+  '农业': { pinyin: 'nóngyè', definition: 'agriculture; farming' },
+  '冰川': { pinyin: 'bīngchuān', definition: 'glacier' },
+  '决策': { pinyin: 'juécè', definition: 'decision-making; policy decision' },
+  '减排': { pinyin: 'jiǎnpái', definition: 'emission reduction' },
+  '创造': { pinyin: 'chuàngzào', definition: 'to create; to produce' },
+  '功能': { pinyin: 'gōngnéng', definition: 'function; capability' },
+  '加快': { pinyin: 'jiākuài', definition: 'to accelerate; to speed up' },
+  '包括': { pinyin: 'bāokuò', definition: 'to include; to comprise' },
+  '协定': { pinyin: 'xiédìng', definition: 'agreement; accord' },
+  '危机': { pinyin: 'wēijī', definition: 'crisis' },
+  '危险': { pinyin: 'wēixiǎn', definition: 'danger; dangerous; risk' },
+  '发达': { pinyin: 'fādá', definition: 'developed; prosperous' },
+  '受到': { pinyin: 'shòudào', definition: 'to receive; to be subjected to' },
+  '各国': { pinyin: 'gèguó', definition: 'various countries; each country' },
+  '各大': { pinyin: 'gèdà', definition: 'each major; all major' },
+  '呼吁': { pinyin: 'hūyù', definition: 'to call on; to appeal' },
+  '国际': { pinyin: 'guójì', definition: 'international' },
+  '地区': { pinyin: 'dìqū', definition: 'area; region; district' },
+  '增加': { pinyin: 'zēngjiā', definition: 'to increase; to add' },
+  '多个': { pinyin: 'duōgè', definition: 'multiple; many' },
+  '威胁': { pinyin: 'wēixié', definition: 'to threaten; threat' },
+  '媒体': { pinyin: 'méitǐ', definition: 'media' },
+  '对于': { pinyin: 'duìyú', definition: 'regarding; concerning; for' },
+  '工业': { pinyin: 'gōngyè', definition: 'industry; industrial' },
+  '巨额': { pinyin: 'jùé', definition: 'huge sum; large amount' },
+  '巴黎': { pinyin: 'bālí', definition: 'Paris' },
+  '带来': { pinyin: 'dàilái', definition: 'to bring; to bring about' },
+  '干旱': { pinyin: 'gānhàn', definition: 'drought; arid' },
+  '应对': { pinyin: 'yìngduì', definition: 'to deal with; to respond to' },
+  '应用': { pinyin: 'yìngyòng', definition: 'to apply; application' },
+  '强度': { pinyin: 'qiángdù', definition: 'intensity; strength' },
+  '影响': { pinyin: 'yǐngxiǎng', definition: 'influence; effect; to affect' },
+  '快速': { pinyin: 'kuàisù', definition: 'fast; rapid; quick' },
+  '意识': { pinyin: 'yìshí', definition: 'consciousness; awareness' },
+  '感受': { pinyin: 'gǎnshòu', definition: 'to feel; to experience; feeling' },
+  '成本': { pinyin: 'chéngběn', definition: 'cost' },
+  '承担': { pinyin: 'chéngdān', definition: 'to bear; to undertake' },
+  '承诺': { pinyin: 'chéngnuò', definition: 'to promise; commitment; pledge' },
+  '捕获': { pinyin: 'bǔhuò', definition: 'to capture; to catch' },
+  '提高': { pinyin: 'tígāo', definition: 'to raise; to increase; to improve' },
+  '教育': { pinyin: 'jiàoyù', definition: 'education; to educate' },
+  '数据': { pinyin: 'shùjù', definition: 'data' },
+  '方式': { pinyin: 'fāngshì', definition: 'way; manner; method' },
+  '方面': { pinyin: 'fāngmiàn', definition: 'aspect; side; respect' },
+  '普及': { pinyin: 'pǔjí', definition: 'to popularize; to spread' },
+  '正在': { pinyin: 'zhèngzài', definition: 'in the process of; currently' },
+  '每个': { pinyin: 'měigè', definition: 'each; every' },
+  '沿海': { pinyin: 'yánhǎi', definition: 'coastal; along the coast' },
+  '洪水': { pinyin: 'hóngshuǐ', definition: 'flood' },
+  '清洁': { pinyin: 'qīngjié', definition: 'clean; to clean' },
+  '灭绝': { pinyin: 'mièjué', definition: 'to become extinct; extinction' },
+  '灾害': { pinyin: 'zāihài', definition: 'disaster; calamity' },
+  '然而': { pinyin: 'ránér', definition: 'however; yet; but' },
+  '物种': { pinyin: 'wùzhǒng', definition: 'species' },
+  '生产': { pinyin: 'shēngchǎn', definition: 'to produce; production' },
+  '生物': { pinyin: 'shēngwù', definition: 'organism; living thing; biology' },
+  '用户': { pinyin: 'yònghù', definition: 'user' },
+  '电商': { pinyin: 'diànshāng', definition: 'e-commerce' },
+  '社交': { pinyin: 'shèjiāo', definition: 'social; social interaction' },
+  '签署': { pinyin: 'qiānshǔ', definition: 'to sign (an agreement)' },
+  '管理': { pinyin: 'guǎnlǐ', definition: 'management; to manage' },
+  '绿色': { pinyin: 'lǜsè', definition: 'green; environmentally friendly' },
+  '能够': { pinyin: 'nénggòu', definition: 'to be able to; can' },
+  '艰难': { pinyin: 'jiānnán', definition: 'difficult; hard' },
+  '融化': { pinyin: 'rónghuà', definition: 'to melt; to thaw' },
+  '被迫': { pinyin: 'bèipò', definition: 'to be forced; to be compelled' },
+  '解决': { pinyin: 'jiějué', definition: 'to solve; to resolve; solution' },
+  '贡献': { pinyin: 'gòngxiàn', definition: 'contribution; to contribute' },
+  '迁移': { pinyin: 'qiānyí', definition: 'to migrate; migration' },
+  '还要': { pinyin: 'háiyào', definition: 'still need to; also want to' },
+  '这一': { pinyin: 'zhèyī', definition: 'this one; this' },
+  '这些': { pinyin: 'zhèxiē', definition: 'these' },
+  '逐步': { pinyin: 'zhúbù', definition: 'gradually; step by step' },
+  '途径': { pinyin: 'tújìng', definition: 'way; channel; means' },
+  '通过': { pinyin: 'tōngguò', definition: 'by means of; through; to pass' },
+  '采取': { pinyin: 'cǎiqǔ', definition: 'to adopt; to take (measures)' },
+  '降低': { pinyin: 'jiàngdī', definition: 'to reduce; to lower; to drop' },
+  '限制': { pinyin: 'xiànzhì', definition: 'to restrict; restriction; limit' },
+  '领域': { pinyin: 'lǐngyù', definition: 'field; domain; area' },
+  '频率': { pinyin: 'pínlǜ', definition: 'frequency' },
+  '风能': { pinyin: 'fēngnéng', definition: 'wind power; wind energy' },
+  '飓风': { pinyin: 'jùfēng', definition: 'hurricane' },
+  '食物': { pinyin: 'shíwù', definition: 'food' },
+  '不断完善': { pinyin: 'bùduàn wánshàn', definition: 'to continuously improve' },
+  '不断改进': { pinyin: 'bùduàn gǎijìn', definition: 'to continuously improve' },
+  '产品开发': { pinyin: 'chǎnpǐn kāifā', definition: 'product development' },
+  '保持联系': { pinyin: 'bǎochí liánxì', definition: 'to stay in touch; to keep in contact' },
+  '全球性': { pinyin: 'quánqiúxìng', definition: 'global; worldwide' },
+  '关键因素': { pinyin: 'guānjiàn yīnsù', definition: 'key factor' },
+  '再生能源': { pinyin: 'zàishēng néngyuán', definition: 'renewable energy' },
+  '创业精神': { pinyin: 'chuàngyè jīngshén', definition: 'entrepreneurial spirit' },
+  '创业者': { pinyin: 'chuàngyèzhě', definition: 'entrepreneur' },
+  '创新能力': { pinyin: 'chuàngxīn nénglì', definition: 'innovation capability' },
+  '北京烤鸭': { pinyin: 'běijīng kǎoyā', definition: 'Peking duck; Beijing roast duck' },
+  '历史悠久': { pinyin: 'lìshǐ yōujiǔ', definition: 'having a long history' },
+  '发展中国家': { pinyin: 'fāzhǎn zhōng guójiā', definition: 'developing country' },
+  '受欢迎': { pinyin: 'shòu huānyíng', definition: 'to be popular; to be well-received' },
+  '各有特点': { pinyin: 'gè yǒu tèdiǎn', definition: 'each has its own characteristics' },
+  '吸取教训': { pinyin: 'xīqǔ jiàoxun', definition: 'to learn from a lesson; to draw lessons from' },
+  '商业模式': { pinyin: 'shāngyè móshì', definition: 'business model' },
+  '培养人才': { pinyin: 'péiyǎng réncái', definition: 'to cultivate talent' },
+  '多样性': { pinyin: 'duōyàngxìng', definition: 'diversity' },
+  '天坛公园': { pinyin: 'tiāntán gōngyuán', definition: 'Temple of Heaven Park' },
+  '太阳能': { pinyin: 'tàiyángnéng', definition: 'solar energy' },
+  '子孙后代': { pinyin: 'zǐsūn hòudài', definition: 'future generations; descendants' },
+  '市场调研': { pinyin: 'shìchǎng diàoyán', definition: 'market research' },
+  '平均气温': { pinyin: 'píngjūn qìwēn', definition: 'average temperature' },
+  '年轻人': { pinyin: 'niánqīngrén', definition: 'young people; youth' },
+  '当今世界': { pinyin: 'dāngjīn shìjiè', definition: 'today\'s world; the modern world' },
+  '打篮球': { pinyin: 'dǎ lánqiú', definition: 'to play basketball' },
+  '技术创新': { pinyin: 'jìshù chuàngxīn', definition: 'technological innovation' },
+  '技术转让': { pinyin: 'jìshù zhuǎnràng', definition: 'technology transfer' },
+  '拍照片': { pinyin: 'pāi zhàopiàn', definition: 'to take photos' },
+  '持续上升': { pinyin: 'chíxù shàngshēng', definition: 'to continue rising' },
+  '数百万': { pinyin: 'shù bǎi wàn', definition: 'millions of' },
+  '方便快捷': { pinyin: 'fāngbiàn kuàijié', definition: 'convenient and fast' },
+  '智能手机': { pinyin: 'zhìnéng shǒujī', definition: 'smartphone' },
+  '气候变化': { pinyin: 'qìhòu biànhuà', definition: 'climate change' },
+  '海平面': { pinyin: 'hǎipíngmiàn', definition: 'sea level' },
+  '物流配送': { pinyin: 'wùliú pèisòng', definition: 'logistics and delivery' },
+  '环境保护': { pinyin: 'huánjìng bǎohù', definition: 'environmental protection' },
+  '生态系统': { pinyin: 'shēngtài xìtǒng', definition: 'ecosystem' },
+  '生活气息': { pinyin: 'shēnghuó qìxī', definition: 'atmosphere of life; living atmosphere' },
+  '电动汽车': { pinyin: 'diàndòng qìchē', definition: 'electric vehicle' },
+  '电子商务': { pinyin: 'diànzǐ shāngwù', definition: 'e-commerce; electronic commerce' },
+  '科学家': { pinyin: 'kēxuéjiā', definition: 'scientist' },
+  '粮食安全': { pinyin: 'liángshi ānquán', definition: 'food security' },
+  '紧急措施': { pinyin: 'jǐnjí cuòshī', definition: 'emergency measures' },
+  '网络安全': { pinyin: 'wǎngluò ānquán', definition: 'network security; cybersecurity' },
+  '能源技术': { pinyin: 'néngyuán jìshù', definition: 'energy technology' },
+  '能源消耗': { pinyin: 'néngyuán xiāohào', definition: 'energy consumption' },
+  '至关重要': { pinyin: 'zhìguān zhòngyào', definition: 'extremely important; crucial' },
+  '艺术作品': { pinyin: 'yìshù zuòpǐn', definition: 'artwork; work of art' },
+  '越来越快': { pinyin: 'yuèláiyuè kuài', definition: 'faster and faster; increasingly fast' },
+  '身体健康': { pinyin: 'shēntǐ jiànkāng', definition: 'physical health; good health' },
+  '重要环节': { pinyin: 'zhòngyào huánjié', definition: 'important part; key link' },
+  '银行业务': { pinyin: 'yínháng yèwù', definition: 'banking services' },
+  '风险投资': { pinyin: 'fēngxiǎn tóuzī', definition: 'venture capital; risk investment' },
 };
+
+// Full dictionary cache (loaded on demand)
+let fullChineseDictCache: Record<string, { p: string; d: string }> | null = null;
+let fullDictLoadingPromise: Promise<void> | null = null;
+
+/**
+ * Load the full CC-CEDICT dictionary (124k+ entries, ~15MB)
+ * This is loaded lazily on first use and cached in memory
+ * Can be called proactively to pre-warm the cache
+ */
+export async function loadFullChineseDict(): Promise<void> {
+  // If already loaded, return immediately
+  if (fullChineseDictCache) {
+    return;
+  }
+
+  // If already loading, wait for that promise
+  if (fullDictLoadingPromise) {
+    return fullDictLoadingPromise;
+  }
+
+  // Start loading
+  fullDictLoadingPromise = (async () => {
+    try {
+      console.log('[Chinese Dict] Loading full CC-CEDICT dictionary...');
+      const response = await fetch('/chinese-dict.json');
+
+      if (!response.ok) {
+        throw new Error(`Failed to load dictionary: ${response.status}`);
+      }
+
+      fullChineseDictCache = await response.json();
+      console.log(`[Chinese Dict] Loaded ${Object.keys(fullChineseDictCache!).length} entries`);
+    } catch (error) {
+      console.error('[Chinese Dict] Failed to load full dictionary:', error);
+      // Don't cache the error - allow retry on next lookup
+      fullDictLoadingPromise = null;
+    }
+  })();
+
+  return fullDictLoadingPromise;
+}
+
+/**
+ * Clean up CC-CEDICT definition for display
+ * Removes cross-references, technical annotations, and simplifies complex definitions
+ */
+function cleanDefinition(definition: string, forCharacterBreakdown: boolean = false): string {
+  let cleaned = definition;
+
+  // Remove cross-references like [ye3], [dou1], [zai4 ze2]
+  cleaned = cleaned.replace(/\[[\w\d\s]+\]/g, '');
+
+  // Remove parenthetical notes for character breakdowns (too verbose)
+  if (forCharacterBreakdown) {
+    // Remove long parenthetical explanations
+    cleaned = cleaned.replace(/\([^)]{20,}\)/g, '');
+  }
+
+  // Split by semicolon and take first 3-4 meanings for character breakdowns
+  if (forCharacterBreakdown) {
+    const meanings = cleaned.split(';').map(m => m.trim()).filter(m => m.length > 0);
+    // Take first 3 meanings maximum for character breakdowns
+    cleaned = meanings.slice(0, 3).join('; ');
+  }
+
+  // Clean up extra spaces and semicolons
+  cleaned = cleaned.replace(/\s*;\s*;+/g, ';');
+  cleaned = cleaned.replace(/;\s*$/, '');
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  cleaned = cleaned.trim();
+
+  return cleaned;
+}
+
+/**
+ * Get dictionary entry from full dict or basic dict
+ */
+function getDictEntry(word: string): { pinyin: string; definition: string } | null {
+  // Try full dictionary first (if loaded)
+  if (fullChineseDictCache && fullChineseDictCache[word]) {
+    const entry = fullChineseDictCache[word];
+    return { pinyin: entry.p, definition: entry.d };
+  }
+
+  // Fallback to basic dictionary
+  if (basicChineseDict[word]) {
+    return basicChineseDict[word];
+  }
+
+  return null;
+}
+
+/**
+ * Get dictionary statistics (useful for debugging)
+ */
+export function getChineseDictStats() {
+  return {
+    fullDictLoaded: fullChineseDictCache !== null,
+    fullDictLoading: fullDictLoadingPromise !== null,
+    fullDictSize: fullChineseDictCache ? Object.keys(fullChineseDictCache).length : 0,
+    basicDictSize: Object.keys(basicChineseDict).length,
+  };
+}
 
 export async function lookupChinese(word: string): Promise<DictionaryResult | null> {
   try {
-    // Check our built-in dictionary
-    if (basicChineseDict[word]) {
-      const entry = basicChineseDict[word];
+    // Trigger loading of full dictionary if not already loaded/loading
+    // This happens in the background and doesn't block the initial lookup
+    if (!fullChineseDictCache && !fullDictLoadingPromise) {
+      loadFullChineseDict(); // Fire and forget - will be available for next lookup
+    }
 
+    // Try to get entry from available dictionaries
+    let entry = getDictEntry(word);
+
+    // If not found and full dict is still loading, wait for it
+    if (!entry && fullDictLoadingPromise && !fullChineseDictCache) {
+      await fullDictLoadingPromise;
+      entry = getDictEntry(word);
+    }
+
+    // If we found the word, build the result
+    if (entry) {
       // For compound words (more than 1 character), get component character definitions
       let componentCharacters;
       if (word.length > 1) {
         componentCharacters = [];
         for (const char of word) {
-          if (basicChineseDict[char]) {
+          const charEntry = getDictEntry(char);
+          if (charEntry) {
             componentCharacters.push({
               character: char,
-              reading: basicChineseDict[char].pinyin,
-              definition: basicChineseDict[char].definition,
+              reading: convertPinyin(charEntry.pinyin),
+              definition: cleanDefinition(charEntry.definition, true), // Clean for readability
             });
           }
         }
@@ -905,24 +1190,25 @@ export async function lookupChinese(word: string): Promise<DictionaryResult | nu
 
       return {
         word,
-        reading: entry.pinyin,
-        definition: entry.definition,
+        reading: convertPinyin(entry.pinyin),
+        definition: cleanDefinition(entry.definition, false), // Clean main definition too
         example: undefined,
         componentCharacters,
       };
     }
 
-    // Fallback for words not in our dictionary
+    // Word not found in any dictionary
     // For multi-character words, try to at least provide component definitions
     let componentCharacters;
     if (word.length > 1) {
       componentCharacters = [];
       for (const char of word) {
-        if (basicChineseDict[char]) {
+        const charEntry = getDictEntry(char);
+        if (charEntry) {
           componentCharacters.push({
             character: char,
-            reading: basicChineseDict[char].pinyin,
-            definition: basicChineseDict[char].definition,
+            reading: convertPinyin(charEntry.pinyin),
+            definition: cleanDefinition(charEntry.definition, true), // Clean for readability
           });
         }
       }

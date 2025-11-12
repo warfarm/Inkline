@@ -1,0 +1,18 @@
+# Cloudflare Workers configuration
+# You'll need to update the account_id with your own
+
+# TTS Proxy Worker
+[[env.production.routes]]
+pattern = "your-domain.com/api/tts"
+
+# Jisho Proxy Worker
+[[env.production.routes]]
+pattern = "your-domain.com/api/jisho"
+
+# Worker settings
+compatibility_date = "2024-01-01"
+main = "./tts-proxy.js"
+
+# For Jisho worker, create a separate wrangler.toml or use:
+# wrangler deploy jisho-proxy.js --name jisho-proxy
+# wrangler deploy tts-proxy.js --name tts-proxy

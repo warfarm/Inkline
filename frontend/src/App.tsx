@@ -1,10 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import Login from '@/pages/Login';
 import AuthCallback from '@/pages/AuthCallback';
 import Onboarding from '@/pages/Onboarding';
 import Home from '@/pages/Home';
+import Articles from '@/pages/Articles';
 import ArticleView from '@/pages/ArticleView';
+import Reading from '@/pages/Reading';
 import WordBank from '@/pages/WordBank';
 import Progress from '@/pages/Progress';
 import MyClasses from '@/pages/MyClasses';
@@ -16,9 +19,22 @@ import TeacherDashboard from '@/pages/TeacherDashboard';
 import ClassDetail from '@/pages/ClassDetail';
 
 import { useAuth } from '@/hooks/useAuth';
+import { loadFullChineseDict } from '@/lib/dictionaries/chinese';
 
 function App() {
   const { profile, loading } = useAuth();
+
+  // Preload Chinese dictionary for Chinese learners
+  useEffect(() => {
+    if (profile?.target_language === 'zh') {
+      console.log('[App] Preloading Chinese dictionary for user...');
+      loadFullChineseDict().then(() => {
+        console.log('[App] Chinese dictionary preloaded successfully');
+      }).catch((error) => {
+        console.error('[App] Failed to preload Chinese dictionary:', error);
+      });
+    }
+  }, [profile?.target_language]);
 
   // Root redirect logic
   const RootRedirect = () => {
@@ -66,6 +82,24 @@ function App() {
         element={
           <ProtectedRoute requiredRole="student">
             <Home />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/articles"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <Articles />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/reading"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <Reading />
           </ProtectedRoute>
         }
       />

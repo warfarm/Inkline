@@ -3,6 +3,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { DictionaryResult } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Volume2, Pause, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Profile {
   target_language?: string;
@@ -154,12 +155,14 @@ export function PhrasePopup({
                   size="lg"
                   onClick={handleSpeak}
                   disabled={isSpeaking}
-                  className="h-10 w-10 p-0 text-xl transition-transform hover:scale-110"
+                  className="h-10 w-10 p-0 transition-transform hover:scale-110"
                   title="Listen to pronunciation"
                 >
-                  <span className="inline-block transition-transform hover:scale-125">
-                    {isSpeaking ? '⏸' : '🔊'}
-                  </span>
+                  {isSpeaking ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Volume2 className="h-5 w-5" />
+                  )}
                 </Button>
               </div>
               {result.reading && (
@@ -186,7 +189,17 @@ export function PhrasePopup({
               onClick={() => setShowMore(!showMore)}
               className="w-full text-xs"
             >
-              {showMore ? '▲ Show Less' : '▼ Show More'}
+              {showMore ? (
+                <>
+                  <ChevronUp className="mr-1 h-3 w-3" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="mr-1 h-3 w-3" />
+                  Show More
+                </>
+              )}
             </Button>
 
             {/* Expanded Content */}

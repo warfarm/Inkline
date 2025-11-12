@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { GraduationCap, Lightbulb, BookOpen } from 'lucide-react';
 import type { Article } from '@/types';
 
 export default function Home() {
@@ -43,6 +44,10 @@ export default function Home() {
     navigate(`/article/${articleId}`);
   };
 
+  const formatLevel = (level: string): string => {
+    return level.charAt(0).toUpperCase() + level.slice(1);
+  };
+
   if (!profile) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -54,7 +59,8 @@ export default function Home() {
   return (
     <Layout>
       <div className="mb-8">
-        <h2 className="text-3xl font-bold">
+        <h2 className="text-3xl font-bold flex items-center gap-2">
+          <GraduationCap className="h-8 w-8" />
           Welcome, {profile.display_name}
         </h2>
         <p className="mt-2 text-muted-foreground">
@@ -64,7 +70,10 @@ export default function Home() {
       </div>
 
       <section>
-        <h3 className="mb-4 text-xl font-semibold">Recommended Articles</h3>
+        <h3 className="mb-4 text-xl font-semibold flex items-center gap-2">
+          <Lightbulb className="h-5 w-5" />
+          Recommended Articles
+        </h3>
         {loading ? (
           <p className="text-muted-foreground">Loading articles...</p>
         ) : articles.length === 0 ? (
@@ -86,7 +95,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle className="line-clamp-2">{article.title}</CardTitle>
                   <CardDescription>
-                    {article.topic} • {article.word_count} words
+                    {article.topic} • {formatLevel(article.difficulty_level)} • {article.word_count} words
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

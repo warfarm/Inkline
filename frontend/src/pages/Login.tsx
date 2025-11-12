@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Languages } from 'lucide-react';
 
 export default function Login() {
   const { user, profile, loading, signInWithGoogle } = useAuth();
@@ -35,17 +36,23 @@ export default function Login() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg flex items-center gap-2">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Loading...
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md bg-white border-gray-300">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-gray-900">Inkline</CardTitle>
-          <CardDescription className="text-base text-gray-600">
+          <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2">
+            <Languages className="h-8 w-8" />
+            Inkline
+          </CardTitle>
+          <CardDescription className="text-base">
             Learn Chinese and Japanese through interactive reading
           </CardDescription>
         </CardHeader>

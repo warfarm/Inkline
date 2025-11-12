@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProgressChart } from '@/components/dashboard/ProgressChart';
+import { BookOpen, Brain, Flame, Clock, TrendingUp, Calendar } from 'lucide-react';
 import type { ReadingHistory, Article } from '@/types';
 
 interface ProgressStats {
@@ -40,16 +41,19 @@ export default function Progress() {
 
     setLoading(true);
     try {
-      // Fetch reading history
-      const { data: historyData, error: historyError } = await supabase
+      // Fetch ALL reading history (both completed and in-progress)
+      const { data: allHistoryData, error: allHistoryError } = await supabase
         .from('reading_history')
         .select('*')
         .eq('user_id', user.id)
-        .order('completed_at', { ascending: false });
+        .order('completed_at', { ascending: false, nullsFirst: false });
 
-      if (historyError) throw historyError;
-      const history = historyData || [];
-      setReadingHistory(history);
+      if (allHistoryError) throw allHistoryError;
+      const allHistory = allHistoryData || [];
+
+      // Filter for completed articles only
+      const completedHistory = allHistory.filter(h => h.completed_at !== null);
+      setReadingHistory(completedHistory);
 
       // Fetch word bank stats
       const { data: wordData, error: wordError } = await supabase
@@ -62,35 +66,42 @@ export default function Progress() {
       const totalWords = wordData?.length || 0;
       const mastered = wordData?.filter((w) => w.status === 'mastered').length || 0;
 
-      // Calculate total time
-      const totalSeconds = history.reduce((sum, entry) => sum + (entry.time_spent_seconds || 0), 0);
+      // Calculate total time from ALL sessions (including partial/in-progress)
+      const totalSeconds = allHistory.reduce((sum, entry) => sum + (entry.time_spent_seconds || 0), 0);
       const totalMinutes = Math.round(totalSeconds / 60);
 
-      // Calculate current streak
-      const streak = calculateStreak(history);
+      // Calculate current streak (only from completed articles)
+      const streak = calculateStreak(completedHistory);
 
-      // Fetch recent articles
-      if (history.length > 0) {
-        const recentIds = history.slice(0, 5).map((h) => h.article_id);
-        const { data: articlesData, error: articlesError } = await supabase
-          .from('articles')
-          .select('*')
-          .in('id', recentIds);
+      // Fetch recent articles (only completed ones from regular articles table)
+      if (completedHistory.length > 0) {
+        // Filter out nulls and only get regular article IDs
+        const recentIds = completedHistory
+          .slice(0, 5)
+          .map((h) => h.article_id)
+          .filter((id) => id !== null);
 
-        if (!articlesError && articlesData) {
-          const articlesWithDate = articlesData.map((article) => {
-            const historyEntry = history.find((h) => h.article_id === article.id);
-            return {
-              ...article,
-              completed_at: historyEntry?.completed_at || '',
-            };
-          });
-          setRecentArticles(articlesWithDate);
+        if (recentIds.length > 0) {
+          const { data: articlesData, error: articlesError } = await supabase
+            .from('articles')
+            .select('*')
+            .in('id', recentIds);
+
+          if (!articlesError && articlesData) {
+            const articlesWithDate = articlesData.map((article) => {
+              const historyEntry = completedHistory.find((h) => h.article_id === article.id);
+              return {
+                ...article,
+                completed_at: historyEntry?.completed_at || '',
+              };
+            });
+            setRecentArticles(articlesWithDate);
+          }
         }
       }
 
       setStats({
-        totalArticlesRead: history.length,
+        totalArticlesRead: completedHistory.length,
         totalWordsLearned: totalWords,
         masteredWords: mastered,
         currentStreak: streak,
@@ -153,8 +164,9 @@ export default function Progress() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>
-                <span className="inline-block transition-transform hover:scale-125">📚</span> Articles Read
+              <CardDescription className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                Articles Read
               </CardDescription>
               <CardTitle className="text-4xl">{stats.totalArticlesRead}</CardTitle>
             </CardHeader>
@@ -167,8 +179,9 @@ export default function Progress() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>
-                <span className="inline-block transition-transform hover:scale-125">💯</span> Words Saved
+              <CardDescription className="flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                Words Saved
               </CardDescription>
               <CardTitle className="text-4xl">{stats.totalWordsLearned}</CardTitle>
             </CardHeader>
@@ -181,10 +194,13 @@ export default function Progress() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Current Streak</CardDescription>
-              <CardTitle className="text-4xl">
+              <CardDescription className="flex items-center gap-2">
+                <Flame className="h-4 w-4" />
+                Current Streak
+              </CardDescription>
+              <CardTitle className="text-4xl flex items-center gap-2">
                 {stats.currentStreak}
-                <span className="inline-block text-2xl ml-1 transition-transform hover:scale-125">🔥</span>
+                <span className="text-xl">days</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -196,8 +212,9 @@ export default function Progress() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>
-                <span className="inline-block transition-transform hover:scale-125">⏱️</span> Time Reading
+              <CardDescription className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Time Reading
               </CardDescription>
               <CardTitle className="text-4xl">
                 {stats.totalTimeMinutes}
@@ -216,7 +233,10 @@ export default function Progress() {
         {readingHistory.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Reading Activity</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Reading Activity
+              </CardTitle>
               <CardDescription>Your reading consistency over time</CardDescription>
             </CardHeader>
             <CardContent>
@@ -228,7 +248,10 @@ export default function Progress() {
         {/* Recent Articles */}
         {recentArticles.length > 0 && (
           <div>
-            <h3 className="text-xl font-semibold mb-4">Recently Completed</h3>
+            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Recently Completed
+            </h3>
             <div className="space-y-3">
               {recentArticles.map((article) => (
                 <Card

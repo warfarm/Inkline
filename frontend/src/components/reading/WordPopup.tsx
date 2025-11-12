@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { DictionaryResult } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Volume2, Pause, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Profile {
   target_language?: string;
@@ -18,9 +19,10 @@ interface WordPopupProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   profile?: Profile | null;
+  isInWordBank?: boolean;
 }
 
-export function WordPopup({ result, position, onSave, onClose, saving, onMouseEnter, onMouseLeave, profile }: WordPopupProps) {
+export function WordPopup({ result, position, onSave, onClose, saving, onMouseEnter, onMouseLeave, profile, isInWordBank }: WordPopupProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const [showMore, setShowMore] = useState(false);
@@ -60,54 +62,197 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
     }
   }, [position]);
 
-  const handleSpeak = () => {
-    if ('speechSynthesis' in window) {
-      // Cancel any ongoing speech
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
+  const handleSpeak = async () => {
+    // Determine language
+    let language = 'zh-CN'; // Default to Chinese
+    if (profile?.target_language === 'ja') {
+      language = 'ja';
+    } else if (profile?.target_language === 'zh') {
+      language = 'zh-CN';
+    } else if (profile?.target_language === 'ko') {
+      language = 'ko-KR';
+    } else {
+      // Fallback: detect language from characters
+      const hasHiragana = /[\u3040-\u309F]/.test(result.word);
+      const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
+      const hasHangul = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(result.word);
+
+      if (hasHiragana || hasKatakana) {
+        language = 'ja';
+      } else if (hasHangul) {
+        language = 'ko-KR';
+      } else {
+        language = 'zh-CN';
+      }
+    }
+
+    setIsSpeaking(true);
+    console.log('Attempting TTS for:', result.word, 'language:', language);
+
+    try {
+      // Try Supabase Edge Function first (bypasses CORS)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (supabaseUrl) {
+        try {
+          console.log('Trying Supabase Edge Function...');
+          const edgeUrl = `${supabaseUrl}/functions/v1/tts?text=${encodeURIComponent(result.word)}&lang=${language}`;
+
+          const response = await fetch(edgeUrl, {
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const audio = new Audio(blobUrl);
+            audio.onplay = () => console.log('Supabase TTS started:', result.word);
+            audio.onended = () => {
+              console.log('Supabase TTS ended');
+              setIsSpeaking(false);
+              URL.revokeObjectURL(blobUrl);
+            };
+            audio.onerror = () => {
+              console.error('Audio playback error');
+              setIsSpeaking(false);
+              URL.revokeObjectURL(blobUrl);
+            };
+
+            await audio.play();
+            return; // Success!
+          } else {
+            console.warn('Supabase Edge Function returned:', response.status);
+          }
+        } catch (edgeError) {
+          console.warn('Supabase Edge Function failed:', edgeError);
+        }
       }
 
-      // Add a small delay to ensure cancel completes
-      setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(result.word);
+      // If Supabase Edge Function not available or failed, try direct Google TTS
+      const text = encodeURIComponent(result.word);
+      const endpoints = [
+        `https://translate.google.com/translate_tts?ie=UTF-8&tl=${language}&client=tw-ob&q=${text}`,
+        `https://translate.google.com/translate_tts?ie=UTF-8&tl=${language}&client=gtx&q=${text}`,
+      ];
 
-        // Use user's target language preference, with fallback to character detection
-        let language = 'zh-CN'; // Default to Chinese
-        if (profile?.target_language === 'ja') {
-          language = 'ja-JP';
-        } else if (profile?.target_language === 'zh') {
-          language = 'zh-CN';
-        } else {
-          // Fallback: detect language from characters if no profile setting
-          const hasHiragana = /[\u3040-\u309F]/.test(result.word);
-          const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
-          const isJapanese = hasHiragana || hasKatakana;
-          language = isJapanese ? 'ja-JP' : 'zh-CN';
-        }
+      let audioPlayed = false;
 
-        utterance.lang = language;
-        utterance.rate = 0.8; // Slightly slower for better clarity
+      for (const audioUrl of endpoints) {
+        if (audioPlayed) break;
 
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = (event) => {
-          console.error('Speech synthesis error:', event);
-          setIsSpeaking(false);
-          // Only show error if it's not an "interrupted" error
-          if (event.error !== 'interrupted') {
-            console.warn('TTS error (non-critical):', event.error);
+        try {
+          console.log('Trying direct Google TTS...');
+          const audio = new Audio();
+
+          const playPromise = new Promise((resolve, reject) => {
+            audio.oncanplaythrough = () => {
+              audio.play()
+                .then(() => {
+                  console.log('Google TTS started successfully:', result.word);
+                  audioPlayed = true;
+                  resolve(true);
+                })
+                .catch(reject);
+            };
+
+            audio.onerror = () => reject(new Error('Audio load failed'));
+            audio.onended = () => {
+              console.log('Google TTS ended');
+              setIsSpeaking(false);
+            };
+
+            audio.src = audioUrl;
+          });
+
+          await Promise.race([
+            playPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+          ]);
+
+          if (audioPlayed) {
+            return; // Success!
           }
-        };
-
-        // Ensure voices are loaded before speaking
-        if (window.speechSynthesis.getVoices().length === 0) {
-          window.speechSynthesis.addEventListener('voiceschanged', () => {
-            window.speechSynthesis.speak(utterance);
-          }, { once: true });
-        } else {
-          window.speechSynthesis.speak(utterance);
+        } catch (endpointError) {
+          console.warn('Direct endpoint failed:', endpointError);
         }
-      }, 100);
+      }
+
+      // If all methods failed, fall back to browser TTS
+      throw new Error('All TTS methods failed');
+
+    } catch (error) {
+      console.error('TTS unavailable:', error);
+      console.log('Falling back to browser TTS...');
+      fallbackToBrowserTTS(language);
+    }
+  };
+
+  const fallbackToBrowserTTS = (language: string) => {
+    if (!('speechSynthesis' in window)) {
+      console.error('Speech synthesis not supported');
+      setIsSpeaking(false);
+      return;
+    }
+
+    // Cancel any ongoing speech
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+
+    const speakWithVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      console.log('Fallback - Available voices:', voices.length);
+
+      const targetVoice = voices.find(voice => voice.lang.startsWith(language.split('-')[0]));
+
+      // If no native voice and it's Chinese, use pinyin
+      let textToSpeak = result.word;
+      let fallbackLang = language;
+
+      if (!targetVoice && language === 'zh-CN' && result.reading) {
+        textToSpeak = result.reading;
+        fallbackLang = 'en-US';
+        console.log('Using pinyin fallback:', textToSpeak);
+      } else if (targetVoice) {
+        console.log('Using native voice:', targetVoice.name);
+      }
+
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = fallbackLang;
+      utterance.rate = 0.8;
+
+      if (targetVoice) {
+        utterance.voice = targetVoice;
+      }
+
+      utterance.onstart = () => {
+        console.log('Browser TTS started:', textToSpeak);
+        setIsSpeaking(true);
+      };
+      utterance.onend = () => {
+        console.log('Browser TTS ended');
+        setIsSpeaking(false);
+      };
+      utterance.onerror = (event) => {
+        console.error('Browser TTS error:', event);
+        setIsSpeaking(false);
+      };
+
+      console.log('Speaking with browser TTS...');
+      window.speechSynthesis.speak(utterance);
+    };
+
+    // Wait for voices to be loaded
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      console.log('Waiting for voices to load...');
+      window.speechSynthesis.addEventListener('voiceschanged', speakWithVoices, { once: true });
+      // Also try after a delay in case event doesn't fire
+      setTimeout(speakWithVoices, 500);
+    } else {
+      speakWithVoices();
     }
   };
 
@@ -127,10 +272,10 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
       >
         {/* Pointer arrow */}
         <div
-          className="absolute -top-2 left-4 w-4 h-4 bg-card border-l-2 border-t-2 border-primary/20 transform rotate-45 max-sm:hidden"
-          style={{ zIndex: 10002 }}
+          className="absolute -top-2 left-4 w-4 h-4 backdrop-blur-md bg-card/95 border-l-2 border-t-2 border-primary/20 transform rotate-45 max-sm:hidden"
+          style={{ zIndex: 10002, backgroundColor: 'hsl(var(--card) / 0.95)' }}
         />
-        <Card className="w-96 max-w-[90vw] max-sm:w-full max-sm:rounded-t-lg max-sm:rounded-b-none shadow-2xl border-2 border-primary/20 max-h-[80vh] overflow-y-auto animate-in fade-in duration-150 bg-card" style={{ backgroundColor: 'hsl(var(--card))' }}>
+        <Card className="w-96 max-w-[90vw] max-sm:w-full max-sm:rounded-t-lg max-sm:rounded-b-none shadow-2xl border-2 border-primary/20 animate-in fade-in duration-150 backdrop-blur-md bg-card/95" style={{ backgroundColor: 'hsl(var(--card) / 0.95)' }}>
           <CardContent className="p-4 space-y-3">
             {/* Header */}
             <div className="space-y-1">
@@ -141,16 +286,24 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
                   size="lg"
                   onClick={handleSpeak}
                   disabled={isSpeaking}
-                  className="h-10 w-10 p-0 text-xl transition-transform hover:scale-110"
+                  className="h-10 w-10 p-0 transition-transform hover:scale-110"
                   title="Listen to pronunciation"
                 >
-                  <span className="inline-block transition-transform hover:scale-125">
-                    {isSpeaking ? '⏸' : '🔊'}
-                  </span>
+                  {isSpeaking ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Volume2 className="h-5 w-5" />
+                  )}
                 </Button>
               </div>
               {result.reading && (
                 <div className="text-sm text-muted-foreground">{result.reading}</div>
+              )}
+              {isInWordBank && (
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-300 dark:border-green-700">
+                  <Check className="h-3 w-3" />
+                  <span>In Word Bank</span>
+                </div>
               )}
             </div>
 
@@ -174,17 +327,17 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
 
             {/* Character Components - Always visible for Chinese compound words */}
             {result.componentCharacters && result.componentCharacters.length > 0 && (
-              <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-3 text-sm">
-                <div className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Character Breakdown:</div>
+              <div className="rounded-md bg-secondary/60 border-2 border-primary/20 p-3 text-sm">
+                <div className="font-semibold text-foreground mb-2">Character Breakdown:</div>
                 <div className="space-y-2">
                   {result.componentCharacters.map((component, idx) => (
                     <div key={idx} className="flex items-start gap-2">
-                      <span className="text-xl font-bold text-emerald-900 dark:text-emerald-100 min-w-[1.5rem]">
+                      <span className="text-xl font-bold text-foreground min-w-[1.5rem]">
                         {component.character}
                       </span>
                       <div className="flex-1">
-                        <span className="text-emerald-700 dark:text-emerald-300 font-medium">{component.reading}</span>
-                        <span className="text-emerald-800 dark:text-emerald-200 ml-2">— {component.definition}</span>
+                        <span className="text-foreground/90 font-medium">{component.reading}</span>
+                        <span className="text-foreground/80 ml-2">— {component.definition}</span>
                       </div>
                     </div>
                   ))}
@@ -192,17 +345,59 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
               </div>
             )}
 
-            {/* Show More Button */}
-            {(result.definitions && result.definitions.length > 1) || result.usageNotes || result.examples ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowMore(!showMore)}
-                className="w-full text-xs"
-              >
-                {showMore ? '▲ Show Less' : '▼ Show More'}
-              </Button>
-            ) : null}
+            {/* Korean Conjugation Info - Show dictionary form for conjugated verbs */}
+            {result.conjugationInfo && (
+              <div className="rounded-md bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 p-2 text-sm">
+                <div className="font-semibold text-purple-900 dark:text-purple-100 mb-1">Conjugation:</div>
+                <div className="text-purple-800 dark:text-purple-200">
+                  <span className="font-medium">{result.conjugationInfo.conjugatedForm}</span>
+                  <ChevronLeft className="mx-2 h-4 w-4 inline" />
+                  <span className="font-medium">{result.conjugationInfo.dictionaryForm}</span>
+                  {result.conjugationInfo.conjugationType && (
+                    <span className="ml-2 text-xs text-purple-600 dark:text-purple-300">
+                      ({result.conjugationInfo.conjugationType})
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Korean Particle Breakdown - Show particle attached to stem */}
+            {result.particleBreakdown && (
+              <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-2 text-sm">
+                <div className="font-semibold text-emerald-900 dark:text-emerald-100 mb-1">Particle Breakdown:</div>
+                <div className="text-emerald-800 dark:text-emerald-200 space-y-1">
+                  <div>
+                    <span className="font-medium">{result.particleBreakdown.stem}</span>
+                    <span className="mx-1">+</span>
+                    <span className="font-medium">{result.particleBreakdown.particle}</span>
+                  </div>
+                  <div className="text-xs text-emerald-700 dark:text-emerald-300">
+                    {result.particleBreakdown.particle}: {result.particleBreakdown.particleDefinition}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show More Button - Always visible for personal notes */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMore(!showMore)}
+              className="w-full text-xs"
+            >
+              {showMore ? (
+                <>
+                  <ChevronUp className="mr-1 h-3 w-3" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="mr-1 h-3 w-3" />
+                  Show More
+                </>
+              )}
+            </Button>
 
             {/* Expanded Content */}
             {showMore && (

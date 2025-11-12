@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChevronLeft, Users, BookOpen, Clock } from 'lucide-react';
 import type { Class, Profile } from '@/types';
 
 interface StudentProgress {
@@ -183,7 +184,8 @@ export default function ClassDetail() {
         <div className="flex items-start justify-between">
           <div>
             <Button variant="ghost" onClick={() => navigate('/teacher')} className="mb-2 -ml-4">
-              ← Back to Classes
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Back to Classes
             </Button>
             <h2 className="text-3xl font-bold">{classInfo.name}</h2>
             <p className="mt-2 text-muted-foreground">
