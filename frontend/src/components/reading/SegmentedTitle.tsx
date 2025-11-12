@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import { WordPopup } from './WordPopup';
 import { segmentChinese } from '@/lib/segmentation/chinese';
-import { segmentJapanese } from '@/lib/segmentation/japanese';
+import { segmentJapaneseSync } from '@/lib/segmentation/japanese';
 import { segmentKorean } from '@/lib/segmentation/korean';
 import { lookupChinese } from '@/lib/dictionaries/chinese';
-import { lookupJapanese } from '@/lib/dictionaries/jisho';
+import { lookupJapanese } from '@/lib/dictionaries/jmdict';
 import { lookupKorean } from '@/lib/dictionaries/korean';
 import { useWordPopupMode } from '@/hooks/useWordPopupMode';
 import type { DictionaryResult, Profile } from '@/types';
@@ -28,7 +28,7 @@ export function SegmentedTitle({ title, language, className, profile }: Segmente
   const segments = language === 'zh'
     ? segmentChinese(title)
     : language === 'ja'
-    ? segmentJapanese(title)
+    ? segmentJapaneseSync(title)
     : segmentKorean(title);
 
   const handleWordClick = async (word: string, event: React.MouseEvent) => {

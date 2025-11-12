@@ -1,4 +1,7 @@
 import TinySegmenter from 'tiny-segmenter';
+// Optional: Kuromoji for better accuracy (if it loads successfully)
+// import kuromoji from 'kuromoji';
+// import type { IpadicFeatures, Tokenizer } from 'kuromoji';
 
 const segmenter = new TinySegmenter();
 
@@ -7,14 +10,49 @@ export interface SegmentedWord {
   start: number;
   end: number;
   reading?: string;
+  baseForm?: string;  // Dictionary form (e.g., 食べ → 食べる)
+  pos?: string;       // Part of speech
 }
+
+/**
+ * Kuromoji tokenizer - DISABLED for now due to browser compatibility issues
+ * Using TinySegmenter instead for reliable segmentation
+ */
 
 /**
  * Segments Japanese text into words using TinySegmenter
  * @param text - The Japanese text to segment
  * @returns Array of segmented words with position information
  */
-export function segmentJapanese(text: string): SegmentedWord[] {
+export async function segmentJapanese(text: string): Promise<SegmentedWord[]> {
+  if (!text) return [];
+
+  const segments = segmenter.segment(text);
+  const words: SegmentedWord[] = [];
+  let currentPosition = 0;
+
+  for (const segment of segments) {
+    const start = currentPosition;
+    const end = currentPosition + segment.length;
+
+    words.push({
+      text: segment,
+      start,
+      end,
+    });
+
+    currentPosition = end;
+  }
+
+  return words;
+}
+
+
+/**
+ * Synchronous version for backwards compatibility
+ * Uses TinySegmenter for reliable, fast segmentation
+ */
+export function segmentJapaneseSync(text: string): SegmentedWord[] {
   if (!text) return [];
 
   const segments = segmenter.segment(text);
@@ -80,4 +118,13 @@ export function extractKanji(text: string): string[] {
  */
 export function hasKanji(text: string): boolean {
   return Array.from(text).some((char) => isKanji(char));
+}
+
+/**
+ * Pre-loads the Kuromoji tokenizer
+ * DISABLED - Using TinySegmenter instead for browser compatibility
+ */
+export function preloadTokenizer(): void {
+  console.log('Kuromoji disabled, using TinySegmenter for Japanese segmentation');
+  // loadTokenizer().catch(console.error);
 }

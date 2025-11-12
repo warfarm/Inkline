@@ -90,12 +90,26 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
     console.log('Attempting TTS for:', result.word, 'language:', language);
 
     try {
-      // Try Supabase Edge Function first (bypasses CORS)
+      // Try Web Speech API first (most reliable)
+      if ('speechSynthesis' in window) {
+        const success = await tryBrowserTTS(language);
+        if (success) {
+          return; // Success!
+        }
+      }
+
+      // Fallback: Try Supabase Edge Function (bypasses CORS)
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       if (supabaseUrl) {
         try {
           console.log('Trying Supabase Edge Function...');
-          const edgeUrl = `${supabaseUrl}/functions/v1/tts?text=${encodeURIComponent(result.word)}&lang=${language}`;
+
+          // For Japanese, prefer using reading for better pronunciation
+          const textToSpeak = language === 'ja' && result.reading
+            ? result.reading
+            : result.word;
+
+          const edgeUrl = `${supabaseUrl}/functions/v1/tts?text=${encodeURIComponent(textToSpeak)}&lang=${language}`;
 
           const response = await fetch(edgeUrl, {
             headers: {
@@ -108,7 +122,7 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
             const blobUrl = URL.createObjectURL(blob);
 
             const audio = new Audio(blobUrl);
-            audio.onplay = () => console.log('Supabase TTS started:', result.word);
+            audio.onplay = () => console.log('Supabase TTS started:', textToSpeak);
             audio.onended = () => {
               console.log('Supabase TTS ended');
               setIsSpeaking(false);
@@ -130,130 +144,109 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
         }
       }
 
-      // If Supabase Edge Function not available or failed, try direct Google TTS
-      const text = encodeURIComponent(result.word);
-      const endpoints = [
-        `https://translate.google.com/translate_tts?ie=UTF-8&tl=${language}&client=tw-ob&q=${text}`,
-        `https://translate.google.com/translate_tts?ie=UTF-8&tl=${language}&client=gtx&q=${text}`,
-      ];
-
-      let audioPlayed = false;
-
-      for (const audioUrl of endpoints) {
-        if (audioPlayed) break;
-
-        try {
-          console.log('Trying direct Google TTS...');
-          const audio = new Audio();
-
-          const playPromise = new Promise((resolve, reject) => {
-            audio.oncanplaythrough = () => {
-              audio.play()
-                .then(() => {
-                  console.log('Google TTS started successfully:', result.word);
-                  audioPlayed = true;
-                  resolve(true);
-                })
-                .catch(reject);
-            };
-
-            audio.onerror = () => reject(new Error('Audio load failed'));
-            audio.onended = () => {
-              console.log('Google TTS ended');
-              setIsSpeaking(false);
-            };
-
-            audio.src = audioUrl;
-          });
-
-          await Promise.race([
-            playPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
-          ]);
-
-          if (audioPlayed) {
-            return; // Success!
-          }
-        } catch (endpointError) {
-          console.warn('Direct endpoint failed:', endpointError);
-        }
-      }
-
-      // If all methods failed, fall back to browser TTS
+      // If all methods failed, throw error
       throw new Error('All TTS methods failed');
 
     } catch (error) {
       console.error('TTS unavailable:', error);
-      console.log('Falling back to browser TTS...');
-      fallbackToBrowserTTS(language);
+      setIsSpeaking(false);
     }
   };
 
-  const fallbackToBrowserTTS = (language: string) => {
-    if (!('speechSynthesis' in window)) {
-      console.error('Speech synthesis not supported');
-      setIsSpeaking(false);
-      return;
-    }
+  /**
+   * Primary TTS method using Web Speech API
+   * Returns true if successful, false otherwise
+   */
+  const tryBrowserTTS = async (language: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (!('speechSynthesis' in window)) {
+        console.warn('Speech synthesis not supported');
+        resolve(false);
+        return;
+      }
 
-    // Cancel any ongoing speech
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-    }
+      // Cancel any ongoing speech
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
 
-    const speakWithVoices = () => {
+      const speakWithVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        console.log('Available voices:', voices.length);
+
+        // Find appropriate voice for the language
+        const langCode = language.split('-')[0]; // 'ja', 'zh', 'ko'
+        const targetVoice = voices.find(voice => voice.lang.startsWith(langCode));
+
+        // Determine what text to speak
+        let textToSpeak = result.word;
+        let fallbackLang = language;
+
+        // For Japanese: prefer reading (hiragana/katakana) for accurate pronunciation
+        // This fixes the 私 → し issue by using わたし instead
+        if (language === 'ja' && result.reading) {
+          textToSpeak = result.reading;
+          console.log('Using reading for Japanese pronunciation:', textToSpeak);
+        } else if (!targetVoice && language === 'zh-CN' && result.reading) {
+          // For Chinese without native voice, use pinyin
+          textToSpeak = result.reading;
+          fallbackLang = 'en-US';
+          console.log('Using pinyin fallback:', textToSpeak);
+        }
+
+        if (targetVoice) {
+          console.log('Using native voice:', targetVoice.name);
+        }
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = fallbackLang;
+        utterance.rate = 0.8; // Slightly slower for clarity
+
+        if (targetVoice) {
+          utterance.voice = targetVoice;
+        }
+
+        utterance.onstart = () => {
+          console.log('Browser TTS started:', textToSpeak);
+          setIsSpeaking(true);
+        };
+
+        utterance.onend = () => {
+          console.log('Browser TTS ended');
+          setIsSpeaking(false);
+          resolve(true);
+        };
+
+        utterance.onerror = (event) => {
+          console.error('Browser TTS error:', event);
+          setIsSpeaking(false);
+          resolve(false);
+        };
+
+        console.log('Speaking with browser TTS...');
+        window.speechSynthesis.speak(utterance);
+      };
+
+      // Wait for voices to be loaded
       const voices = window.speechSynthesis.getVoices();
-      console.log('Fallback - Available voices:', voices.length);
+      if (voices.length === 0) {
+        console.log('Waiting for voices to load...');
+        let hasSpoken = false;
 
-      const targetVoice = voices.find(voice => voice.lang.startsWith(language.split('-')[0]));
+        const speakOnce = () => {
+          if (!hasSpoken) {
+            hasSpoken = true;
+            speakWithVoices();
+          }
+        };
 
-      // If no native voice and it's Chinese, use pinyin
-      let textToSpeak = result.word;
-      let fallbackLang = language;
-
-      if (!targetVoice && language === 'zh-CN' && result.reading) {
-        textToSpeak = result.reading;
-        fallbackLang = 'en-US';
-        console.log('Using pinyin fallback:', textToSpeak);
-      } else if (targetVoice) {
-        console.log('Using native voice:', targetVoice.name);
+        window.speechSynthesis.addEventListener('voiceschanged', speakOnce, { once: true });
+        // Also try after a delay in case event doesn't fire
+        setTimeout(speakOnce, 500);
+      } else {
+        speakWithVoices();
       }
-
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.lang = fallbackLang;
-      utterance.rate = 0.8;
-
-      if (targetVoice) {
-        utterance.voice = targetVoice;
-      }
-
-      utterance.onstart = () => {
-        console.log('Browser TTS started:', textToSpeak);
-        setIsSpeaking(true);
-      };
-      utterance.onend = () => {
-        console.log('Browser TTS ended');
-        setIsSpeaking(false);
-      };
-      utterance.onerror = (event) => {
-        console.error('Browser TTS error:', event);
-        setIsSpeaking(false);
-      };
-
-      console.log('Speaking with browser TTS...');
-      window.speechSynthesis.speak(utterance);
-    };
-
-    // Wait for voices to be loaded
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) {
-      console.log('Waiting for voices to load...');
-      window.speechSynthesis.addEventListener('voiceschanged', speakWithVoices, { once: true });
-      // Also try after a delay in case event doesn't fire
-      setTimeout(speakWithVoices, 500);
-    } else {
-      speakWithVoices();
-    }
+    });
   };
 
   return createPortal(

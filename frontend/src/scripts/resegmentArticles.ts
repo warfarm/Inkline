@@ -51,7 +51,7 @@ async function resegmentAllArticles() {
       // Segment based on language
       const segmentedWords = article.language === 'zh'
         ? segmentChinese(article.content)
-        : segmentJapanese(article.content);
+        : await segmentJapanese(article.content);
 
       // Create the segmented content structure
       const segmentedContent = {

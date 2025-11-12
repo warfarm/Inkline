@@ -4,8 +4,12 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { Toaster } from '@/components/ui/sonner'
+import { preloadTokenizer } from '@/lib/segmentation'
 import './index.css'
 import App from './App.tsx'
+
+// Preload Kuromoji tokenizer for Japanese segmentation
+preloadTokenizer();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

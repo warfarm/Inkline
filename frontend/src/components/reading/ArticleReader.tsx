@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWordPopupMode } from '@/hooks/useWordPopupMode';
 import { supabase } from '@/lib/supabase';
-import { lookupJapanese } from '@/lib/dictionaries/jisho';
+import { lookupJapanese } from '@/lib/dictionaries/jmdict';
 import { lookupChinese } from '@/lib/dictionaries/chinese';
 import { lookupKorean } from '@/lib/dictionaries/korean';
-import { segmentText } from '@/lib/segmentation';
+import { segmentTextSync } from '@/lib/segmentation';
 import { WordPopup } from './WordPopup';
 import { PhrasePopup } from './PhrasePopup';
 import { toast } from 'sonner';
@@ -56,7 +56,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
     if (existingWords.length === 0) {
       // No segmentation - segment the full content
       console.log('No segmentation found, auto-segmenting full content...');
-      return segmentText(article.content, article.language);
+      return segmentTextSync(article.content, article.language);
     }
 
     const lastWord = existingWords[existingWords.length - 1];
@@ -65,7 +65,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
     if (!isComplete) {
       // Incomplete segmentation - re-segment the full content
       console.log(`Incomplete segmentation detected (ends at ${lastWord?.end}, content length: ${article.content.length}), auto-segmenting full content...`);
-      return segmentText(article.content, article.language);
+      return segmentTextSync(article.content, article.language);
     }
 
     // Segmentation is complete, use existing
