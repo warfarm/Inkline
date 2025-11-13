@@ -11,8 +11,6 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Loader2, Settings, Sparkles } from 'lucide-react';
 import type { GeneratedArticle, ArticleLength } from '@/types';
-import { segmentChinese } from '@/lib/segmentation/chinese';
-import { segmentJapanese } from '@/lib/segmentation/japanese';
 import { lookupChinese } from '@/lib/dictionaries/chinese';
 import { lookupJapanese } from '@/lib/dictionaries/jisho';
 
@@ -37,6 +35,8 @@ export default function Reading() {
   const [isTyping, setIsTyping] = useState(false);
   const [typedContent, setTypedContent] = useState('');
   const [isPreloadingDefinitions, setIsPreloadingDefinitions] = useState(false);
+  const [preloadProgress, setPreloadProgress] = useState(0);
+  const [preloadTotal, setPreloadTotal] = useState(0);
 
   useEffect(() => {
     if (profile) {
@@ -167,13 +167,11 @@ export default function Reading() {
       setGenerationProgress(60);
       const generatedData = await response.json();
 
-      // Segment the content
+      // Use backend-segmented content (with readings already included!)
       setGenerationProgress(70);
-      const segmentedWords = profile.target_language === 'zh'
-        ? segmentChinese(generatedData.content)
-        : segmentJapanese(generatedData.content);
+      const segmentedContent = generatedData.segmentedContent || { words: [] };
 
-      const segmentedContent = { words: segmentedWords };
+      console.log('Using backend segmentation:', segmentedContent.words?.length, 'words');
 
       // Save to database
       setGenerationProgress(80);
@@ -284,12 +282,17 @@ export default function Reading() {
     setIsPreloadingDefinitions(true);
 
     try {
-      const words = article.segmented_content.words.map(w => w.text);
+      // Safely handle segmented_content structure
+      const words = article.segmented_content?.words?.map?.(w => w.text) || [];
       const uniqueWords = [...new Set(words)];
+
+      setPreloadTotal(uniqueWords.length);
+      setPreloadProgress(0);
 
       const definitions: Record<string, any> = {};
 
-      for (const word of uniqueWords) {
+      for (let i = 0; i < uniqueWords.length; i++) {
+        const word = uniqueWords[i];
         try {
           let result;
           if (article.language === 'zh') {
@@ -310,6 +313,9 @@ export default function Reading() {
               componentCharacters: result.componentCharacters,
             };
           }
+
+          // Update progress
+          setPreloadProgress(i + 1);
 
           // Small delay to avoid overwhelming APIs
           await new Promise(resolve => setTimeout(resolve, 300));
@@ -481,6 +487,16 @@ export default function Reading() {
                   {generationProgress >= 30 && generationProgress < 60 && 'Generating content...'}
                   {generationProgress >= 60 && generationProgress < 80 && 'Processing article...'}
                   {generationProgress >= 80 && 'Saving...'}
+                </p>
+              </div>
+            )}
+
+            {/* Definition Preloading Progress */}
+            {isPreloadingDefinitions && (
+              <div className="space-y-2 mt-4">
+                <Progress value={(preloadProgress / preloadTotal) * 100} />
+                <p className="text-center text-sm text-muted-foreground">
+                  Preloading definitions... {preloadProgress} / {preloadTotal}
                 </p>
               </div>
             )}

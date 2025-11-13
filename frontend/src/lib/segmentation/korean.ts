@@ -169,11 +169,22 @@ export function detectConjugation(word: string): {
   stem: string;
   ending: string;
   type: string;
+  isHadaVerb?: boolean;
 } | null {
   // Check for common verb endings
   for (const ending of VERB_ENDINGS) {
     if (word.endsWith(ending) && word.length > ending.length) {
       let type = 'unknown';
+      let stem = word.slice(0, -ending.length);
+
+      // Check if this is a 하다 (hada) verb conjugation
+      // 하다 verbs conjugate with 해 instead of 하
+      // Examples: 좋아하다 → 좋아해요, 공부하다 → 공부해요
+      let isHadaVerb = false;
+      if (ending.startsWith('해') || ending.startsWith('했')) {
+        // This is likely a 하다 verb (the 하 became 해 in conjugation)
+        isHadaVerb = true;
+      }
 
       if (ending.includes('습니다') || ending.includes('ㅂ니다')) {
         type = 'polite-formal';
@@ -189,9 +200,10 @@ export function detectConjugation(word: string): {
       }
 
       return {
-        stem: word.slice(0, -ending.length),
+        stem: stem,
         ending: ending,
         type: type,
+        isHadaVerb: isHadaVerb,
       };
     }
   }
@@ -199,14 +211,5 @@ export function detectConjugation(word: string): {
   return null;
 }
 
-/**
- * Romanizes Korean text using Revised Romanization of Korean
- * This is a simplified version - for production, consider using a library
- * @param hangul - The Hangul text to romanize
- * @returns Romanized text
- */
-export function romanizeKorean(_hangul: string): string {
-  // This is a placeholder - actual implementation would need a proper romanization algorithm
-  // or API call. For now, we'll rely on the dictionary API to provide romanization
-  return '';
-}
+// romanizeKorean function removed - was a stub that always returned empty string
+// Korean romanization is provided by the dictionary API instead

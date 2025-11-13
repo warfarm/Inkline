@@ -13,6 +13,7 @@ export interface Profile {
   target_language: Language;
   current_level: DifficultyLevel;
   interests: string[];
+  show_furigana?: boolean; // Display furigana (readings) above Japanese text
   created_at: string;
   updated_at: string;
 }
@@ -52,6 +53,7 @@ export interface Article {
       partOfSpeech?: string;
     }>;
     examples?: string[];
+    jlptLevel?: number;
   }>;
 }
 
@@ -109,6 +111,7 @@ export interface DictionaryResult {
   formalityLevel?: 'casual' | 'polite' | 'formal' | 'honorific';
   usageNotes?: string;
   example?: string; // Kept for backwards compatibility
+  jlptLevel?: number; // JLPT level (5=easiest, 1=hardest)
   componentCharacters?: Array<{
     character: string;
     reading: string;
@@ -162,6 +165,7 @@ export interface GeneratedArticle {
       partOfSpeech?: string;
     }>;
     examples?: string[];
+    jlptLevel?: number;
   }>;
   generation_prompt: string;
   word_bank_words_used: string[];

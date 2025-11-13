@@ -2,11 +2,13 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useWordPopupMode } from '@/hooks/useWordPopupMode';
+import { useFurigana } from '@/hooks/useFurigana';
 import { supabase } from '@/lib/supabase';
 import { lookupJapanese } from '@/lib/dictionaries/jmdict';
 import { lookupChinese } from '@/lib/dictionaries/chinese';
 import { lookupKorean } from '@/lib/dictionaries/korean';
 import { segmentTextSync } from '@/lib/segmentation';
+import { hasKanji } from '@/lib/segmentation';
 import { WordPopup } from './WordPopup';
 import { PhrasePopup } from './PhrasePopup';
 import { toast } from 'sonner';
@@ -21,6 +23,7 @@ interface ArticleReaderProps {
 export function ArticleReader({ article, onComplete, isGenerated = false }: ArticleReaderProps) {
   const { user, profile } = useAuth();
   const { mode: popupMode } = useWordPopupMode();
+  const { shouldShowWordFurigana, isWordOverridden, toggleWordFurigana } = useFurigana();
   const startTimeRef = useRef<number>(Date.now());
   const contentRef = useRef<HTMLDivElement>(null);
   const lastWordClickRef = useRef<{ word: string; timestamp: number } | null>(null);
@@ -30,6 +33,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
   const hasResultRef = useRef<boolean>(false);
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
+    originalWord: string; // The actual word text from the article
     position: { x: number; y: number };
   } | null>(null);
   const [selectedPhrase, setSelectedPhrase] = useState<{
@@ -47,6 +51,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
   const [timeSpent, setTimeSpent] = useState(0);
   const [savedWords, setSavedWords] = useState<Set<string>>(new Set());
   const [readingHistoryId, setReadingHistoryId] = useState<string | null>(null);
+  const [wordReadings, setWordReadings] = useState<Record<string, string>>({});
 
   // Auto-segment full content if segmented_content is incomplete
   const segmentedWords = useMemo(() => {
@@ -56,7 +61,12 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
     if (existingWords.length === 0) {
       // No segmentation - segment the full content
       console.log('No segmentation found, auto-segmenting full content...');
-      return segmentTextSync(article.content, article.language);
+      const words = segmentTextSync(article.content, article.language);
+      // Merge in cached readings
+      return words.map(w => ({
+        ...w,
+        reading: w.reading || wordReadings[w.text]
+      }));
     }
 
     const lastWord = existingWords[existingWords.length - 1];
@@ -65,12 +75,105 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
     if (!isComplete) {
       // Incomplete segmentation - re-segment the full content
       console.log(`Incomplete segmentation detected (ends at ${lastWord?.end}, content length: ${article.content.length}), auto-segmenting full content...`);
-      return segmentTextSync(article.content, article.language);
+      const words = segmentTextSync(article.content, article.language);
+      // Merge in cached readings
+      return words.map(w => ({
+        ...w,
+        reading: w.reading || wordReadings[w.text]
+      }));
     }
 
-    // Segmentation is complete, use existing
-    return existingWords;
-  }, [article.content, article.segmented_content, article.language]);
+    // Segmentation is complete, use existing and merge cached readings
+    return existingWords.map(w => ({
+      ...w,
+      reading: w.reading || wordReadings[w.text]
+    }));
+  }, [article.content, article.segmented_content, article.language, wordReadings]);
+
+  // Preload readings from word_definitions if available
+  useEffect(() => {
+    if (article.word_definitions && article.language === 'ja') {
+      const readings: Record<string, string> = {};
+      for (const [word, def] of Object.entries(article.word_definitions)) {
+        if (def.reading) {
+          readings[word] = def.reading;
+        }
+      }
+      setWordReadings(readings);
+    }
+  }, [article.word_definitions, article.language]);
+
+  // Fetch readings for all kanji words on mount if furigana is enabled
+  useEffect(() => {
+    const fetchAllReadings = async () => {
+      // Only fetch if Japanese and furigana is enabled
+      if (article.language !== 'ja') {
+        return;
+      }
+
+      if (!profile) {
+        return;
+      }
+
+      if (profile.show_furigana !== true) {
+        return;
+      }
+
+      const wordsToFetch: string[] = [];
+
+      // Always segment the content directly to ensure we have an array
+      const currentWords = segmentTextSync(article.content, article.language) || [];
+
+      // Ensure currentWords is an array before iterating
+      if (!Array.isArray(currentWords) || currentWords.length === 0) {
+        return;
+      }
+
+      // Find all words with kanji that don't have readings
+      for (const word of currentWords) {
+        if (hasKanji(word.text) && !word.reading && !wordReadings[word.text]) {
+          wordsToFetch.push(word.text);
+        }
+      }
+
+      // Remove duplicates
+      const uniqueWords = [...new Set(wordsToFetch)];
+
+      if (uniqueWords.length === 0) {
+        return;
+      }
+
+      // Fetch readings in batches to avoid overwhelming the API
+      const batchSize = 10;
+      const newReadings: Record<string, string> = {};
+
+      for (let i = 0; i < uniqueWords.length; i += batchSize) {
+        const batch = uniqueWords.slice(i, i + batchSize);
+
+        await Promise.all(
+          batch.map(async (word) => {
+            try {
+              const result = await lookupJapanese(word);
+              if (result?.reading) {
+                newReadings[word] = result.reading;
+              }
+            } catch (error) {
+              console.error(`Error fetching reading for ${word}:`, error);
+            }
+          })
+        );
+
+        // Small delay between batches
+        if (i + batchSize < uniqueWords.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      setWordReadings(prev => ({ ...prev, ...newReadings }));
+    };
+
+    fetchAllReadings();
+  }, [article.id, article.language, profile?.show_furigana, profile]); // Run when article or profile changes
 
   // Fetch saved words for visual indicators
   useEffect(() => {
@@ -168,6 +271,8 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
   useEffect(() => {
     const initializeReadingHistory = async () => {
       if (!user) return;
+      // Prevent multiple initialization attempts
+      if (readingHistoryId) return;
 
       try {
         // Build the query to check for existing record
@@ -199,7 +304,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
           }
           console.log('Resuming reading session:', { id: existing.id, previousTime: existing.time_spent_seconds });
         } else {
-          // Create new record using upsert to handle race conditions
+          // Create new record using regular insert (we already checked for duplicates above)
           const insertData: any = {
             user_id: user.id,
             time_spent_seconds: 0,
@@ -215,15 +320,24 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
 
           const { data: newRecord, error: insertError } = await supabase
             .from('reading_history')
-            .upsert(insertData, {
-              onConflict: isGenerated ? 'user_id,generated_article_id' : 'user_id,article_id',
-              ignoreDuplicates: false
-            })
+            .insert(insertData)
             .select('id')
             .single();
 
           if (insertError) {
-            console.error('Error creating reading history:', insertError);
+            // If we get a unique constraint error, try fetching again (race condition)
+            if (insertError.code === '23505') {
+              console.log('Race condition detected, fetching existing record...');
+              const { data: raceRecord } = await query.maybeSingle();
+              if (raceRecord) {
+                setReadingHistoryId(raceRecord.id);
+                if (raceRecord.time_spent_seconds > 0) {
+                  startTimeRef.current = Date.now() - (raceRecord.time_spent_seconds * 1000);
+                }
+              }
+            } else {
+              console.error('Error creating reading history:', insertError);
+            }
           } else if (newRecord) {
             setReadingHistoryId(newRecord.id);
             console.log('Created new reading session:', { id: newRecord.id });
@@ -386,6 +500,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
           usageNotes: preloaded.usageNotes,
           definitions: preloaded.definitions,
           examples: preloaded.examples,
+          jlptLevel: preloaded.jlptLevel,
         };
         console.log('Using preloaded definition for:', word);
 
@@ -412,6 +527,14 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
       if (result) {
         setDictionaryResult(result);
         hasResultRef.current = true;
+
+        // Cache the reading for furigana display
+        if (result.reading && article.language === 'ja') {
+          setWordReadings(prev => ({
+            ...prev,
+            [word]: result.reading || ''
+          }));
+        }
       } else {
         setDictionaryResult({
           word,
@@ -456,6 +579,12 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
   const handleWordClick = (word: string, event: React.MouseEvent) => {
     event.preventDefault();
 
+    // Filter out punctuation and whitespace
+    const isPunctuation = /^[\s.,!?;:。、！？；：]+$/.test(word);
+    if (isPunctuation) {
+      return;
+    }
+
     // Don't switch popup if already showing the same word
     if (selectedWord?.word === word) {
       return;
@@ -468,6 +597,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
     const rect = (event.target as HTMLElement).getBoundingClientRect();
     setSelectedWord({
       word,
+      originalWord: word, // Store the original clicked word
       position: {
         x: rect.left,
         y: rect.bottom + 8,
@@ -476,6 +606,12 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
   };
 
   const handleWordHover = (word: string, event: React.MouseEvent) => {
+    // Filter out punctuation and whitespace
+    const isPunctuation = /^[\s.,!?;:。、！？；：]+$/.test(word);
+    if (isPunctuation) {
+      return;
+    }
+
     // If already showing this exact word, just keep it visible
     if (selectedWord?.word === word) {
       // Clear any pending hide timeout to keep it visible
@@ -511,6 +647,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
 
       setSelectedWord({
         word,
+        originalWord: word, // Store the original hovered word
         position: {
           x: rect.left,
           y: rect.bottom + 8,
@@ -812,6 +949,23 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
         >
           {segmentedWords.map((wordData, index) => {
             const isSaved = savedWords.has(wordData.text);
+
+            // Check if we should show furigana for this word
+            const shouldDisplay =
+              article.language === 'ja' &&
+              hasKanji(wordData.text) &&
+              wordData.reading &&
+              shouldShowWordFurigana(wordData.text);
+
+            const wordElement = shouldDisplay ? (
+              <ruby>
+                {wordData.text}
+                <rt>{wordData.reading}</rt>
+              </ruby>
+            ) : (
+              wordData.text
+            );
+
             return (
               <span
                 key={index}
@@ -835,7 +989,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
                   }
                 }}
               >
-                {wordData.text}
+                {wordElement}
               </span>
             );
           })}
@@ -859,6 +1013,7 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
 
       {selectedWord && dictionaryResult && (
         <WordPopup
+          key={`${dictionaryResult.word}-${selectedWord.position.x}-${selectedWord.position.y}`}
           result={dictionaryResult}
           position={selectedWord.position}
           onSave={handleSaveWord}
@@ -868,11 +1023,15 @@ export function ArticleReader({ article, onComplete, isGenerated = false }: Arti
           onMouseLeave={handlePopupMouseLeave}
           profile={profile}
           isInWordBank={savedWords.has(dictionaryResult.word)}
+          wordFuriganaVisible={shouldShowWordFurigana(selectedWord.originalWord)}
+          wordFuriganaOverridden={isWordOverridden(selectedWord.originalWord)}
+          onToggleWordFurigana={hasKanji(selectedWord.originalWord) ? () => toggleWordFurigana(selectedWord.originalWord) : undefined}
         />
       )}
 
       {selectedPhrase && (
         <PhrasePopup
+          key={`${selectedPhrase.phrase}-${selectedPhrase.position.x}-${selectedPhrase.position.y}`}
           phrase={selectedPhrase.phrase}
           result={phraseResult}
           position={selectedPhrase.position}

@@ -1,6 +1,10 @@
 import type { DictionaryResult } from '@/types';
 import { detectConjugation } from '../segmentation/korean';
 
+// Full dictionary cache (loaded on demand)
+let fullKoreanDictCache: Record<string, { r: string; d: string; p: string; i?: string; w?: string }> | null = null;
+let fullDictLoadingPromise: Promise<void> | null = null;
+
 /**
  * Common Korean copulas and verb endings used as standalone words
  */
@@ -211,6 +215,44 @@ const COMMON_PARTICLES: Record<string, {
 };
 
 /**
+ * Load the full Korean dictionary (40k+ entries, ~8MB)
+ * This is loaded lazily on first use and cached in memory
+ * Can be called proactively to pre-warm the cache
+ */
+export async function loadFullKoreanDict(): Promise<void> {
+  // If already loaded, return immediately
+  if (fullKoreanDictCache) {
+    return;
+  }
+
+  // If already loading, wait for that promise
+  if (fullDictLoadingPromise) {
+    return fullDictLoadingPromise;
+  }
+
+  // Start loading
+  fullDictLoadingPromise = (async () => {
+    try {
+      console.log('[Korean Dict] Loading full Korean dictionary...');
+      const response = await fetch('/korean-dict.json');
+
+      if (!response.ok) {
+        throw new Error(`Failed to load dictionary: ${response.status}`);
+      }
+
+      fullKoreanDictCache = await response.json();
+      console.log(`[Korean Dict] Loaded ${Object.keys(fullKoreanDictCache!).length} entries`);
+    } catch (error) {
+      console.error('[Korean Dict] Failed to load full dictionary:', error);
+      // Don't cache the error - allow retry on next lookup
+      fullDictLoadingPromise = null;
+    }
+  })();
+
+  return fullDictLoadingPromise;
+}
+
+/**
  * Cleans HTML and WikiLink markup from text
  * Removes <a rel="mwWikiLink"...> tags and other HTML
  * Uses DOMParser for safe HTML entity decoding and comprehensive tag removal
@@ -398,7 +440,7 @@ function isLikelyKoreanName(word: string): boolean {
 
 /**
  * Main lookup function for Korean words
- * Checks particles first, then tries official Korean dict API, then Wiktionary
+ * Checks particles first, then offline dictionary, then online APIs as fallback
  */
 export async function lookupKorean(word: string): Promise<DictionaryResult | null> {
   try {
@@ -442,7 +484,15 @@ export async function lookupKorean(word: string): Promise<DictionaryResult | nul
     let conjugationResult = undefined;
 
     if (conjugationInfo) {
-      baseWord = conjugationInfo.stem + '다'; // Add 다 to make dictionary form
+      // For 하다 verbs, the stem needs 하다 added (not just 다)
+      // because 하 becomes 해 in conjugation
+      // Example: 좋아해요 → stem "좋아" + "하다" = 좋아하다
+      if (conjugationInfo.isHadaVerb) {
+        baseWord = conjugationInfo.stem + '하다';
+      } else {
+        baseWord = conjugationInfo.stem + '다';
+      }
+
       conjugationResult = {
         dictionaryForm: baseWord,
         conjugatedForm: word,
@@ -450,12 +500,48 @@ export async function lookupKorean(word: string): Promise<DictionaryResult | nul
       };
     }
 
-    // Try Korean dictionary API first (official source)
-    let result = await fetchFromKoreanDict(baseWord);
+    // Try offline dictionary first
+    let result: DictionaryResult | null = null;
 
-    // Fallback to Wiktionary
+    // Load full dictionary if not already loaded (lazy loading)
+    if (!fullKoreanDictCache) {
+      await loadFullKoreanDict();
+    }
+
+    // Check offline dictionary
+    if (fullKoreanDictCache) {
+      const entry = fullKoreanDictCache[baseWord] || fullKoreanDictCache[word];
+      if (entry) {
+        // Convert offline entry to DictionaryResult format
+        const definitions = entry.d.split('; ').map(def => ({
+          meaning: def,
+          partOfSpeech: entry.p || '',
+        }));
+
+        result = {
+          word: entry.w || word, // Use original word if this is a romanization entry
+          reading: entry.r || '',
+          definition: entry.d,
+          definitions: definitions,
+          conjugationInfo: conjugationResult,
+        };
+
+        // If entry has 'w' field, it means we looked up by romanization
+        if (entry.w) {
+          result.word = entry.w;
+        }
+      }
+    }
+
+    // Fallback to online APIs if offline dictionary didn't have the word
     if (!result) {
-      result = await fetchFromWiktionary(baseWord);
+      // Try Korean dictionary API first (official source)
+      result = await fetchFromKoreanDict(baseWord);
+
+      // Fallback to Wiktionary
+      if (!result) {
+        result = await fetchFromWiktionary(baseWord);
+      }
     }
 
     // If we found a result and had conjugation info, add it
@@ -472,7 +558,7 @@ export async function lookupKorean(word: string): Promise<DictionaryResult | nul
         reading: '',
         definition: isName
           ? 'This appears to be a proper noun (name or place). Proper nouns typically don\'t have dictionary definitions.'
-          : 'Definition not found. This word may be a proper noun, abbreviation, or the dictionary service may be temporarily unavailable.',
+          : 'Definition not found. This word may be a proper noun, abbreviation, or not in the dictionary.',
         conjugationInfo: conjugationResult,
       };
     }

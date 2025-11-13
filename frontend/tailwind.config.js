@@ -7,6 +7,43 @@ export default {
   ],
   theme: {
     extend: {
+      keyframes: {
+        "popup-appear": {
+          "0%": {
+            opacity: "0",
+            transform: "scale(0.95) translateY(-10px)"
+          },
+          "100%": {
+            opacity: "1",
+            transform: "scale(1) translateY(0)"
+          },
+        },
+        "slide-in-left": {
+          "0%": {
+            opacity: "0",
+            transform: "translateX(-20px)"
+          },
+          "100%": {
+            opacity: "1",
+            transform: "translateX(0)"
+          },
+        },
+        "slide-in-right": {
+          "0%": {
+            opacity: "0",
+            transform: "translateX(20px)"
+          },
+          "100%": {
+            opacity: "1",
+            transform: "translateX(0)"
+          },
+        },
+      },
+      animation: {
+        "popup-appear": "popup-appear 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+        "slide-in-left": "slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+        "slide-in-right": "slide-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

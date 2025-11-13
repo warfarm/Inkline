@@ -1120,6 +1120,36 @@ function cleanDefinition(definition: string, forCharacterBreakdown: boolean = fa
 }
 
 /**
+ * Parse definition string into structured definitions array
+ * Splits semicolon-separated definitions and extracts part of speech info
+ */
+function parseDefinitionsArray(definition: string): Array<{ meaning: string; partOfSpeech?: string }> {
+  // Clean the definition first
+  let cleaned = definition;
+
+  // Remove cross-references like [ye3], [dou1], [zai4 ze2]
+  cleaned = cleaned.replace(/\[[\w\d\s]+\]/g, '');
+
+  // Split by semicolon to get individual definitions
+  const meanings = cleaned.split(';').map(m => m.trim()).filter(m => m.length > 0);
+
+  return meanings.map(meaning => {
+    // Try to extract part of speech if present at the start
+    // Common patterns: "(verb) ...", "(n) ...", "(adj) ..."
+    const posMatch = meaning.match(/^\(([^)]+)\)\s*(.+)$/);
+
+    if (posMatch) {
+      return {
+        partOfSpeech: posMatch[1],
+        meaning: posMatch[2].trim()
+      };
+    }
+
+    return { meaning: meaning.trim() };
+  });
+}
+
+/**
  * Get dictionary entry from full dict or basic dict
  */
 function getDictEntry(word: string): { pinyin: string; definition: string } | null {
@@ -1188,10 +1218,14 @@ export async function lookupChinese(word: string): Promise<DictionaryResult | nu
         }
       }
 
+      // Parse definitions into array format for better display
+      const definitionsArray = parseDefinitionsArray(entry.definition);
+
       return {
         word,
         reading: convertPinyin(entry.pinyin),
-        definition: cleanDefinition(entry.definition, false), // Clean main definition too
+        definition: cleanDefinition(entry.definition, false), // Keep for backwards compatibility
+        definitions: definitionsArray, // Structured array for WordPopup
         example: undefined,
         componentCharacters,
       };

@@ -7,17 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { FlashcardPractice } from '@/components/wordbank/FlashcardPractice';
+import { AddWordForm } from '@/components/wordbank/AddWordForm';
 import { toast } from 'sonner';
-import { Volume2, Pause, Check, Circle, ChevronDown, ChevronUp, Download, Languages, RotateCcw } from 'lucide-react';
+import { Volume2, Pause, Check, Circle, ChevronDown, ChevronUp, Download, Languages, RotateCcw, Plus, ArrowLeft } from 'lucide-react';
 import type { WordBankEntry } from '@/types';
 
 export default function WordBank() {
   const { user, profile } = useAuth();
   const [words, setWords] = useState<WordBankEntry[]>([]);
   const [filter, setFilter] = useState<'all' | 'learning' | 'mastered'>('all');
-  const [languageFilter, setLanguageFilter] = useState<'all' | 'ja' | 'zh'>('all');
+  const [languageFilter, setLanguageFilter] = useState<'all' | 'ja' | 'zh' | 'ko'>('all');
   const [loading, setLoading] = useState(true);
   const [practiceMode, setPracticeMode] = useState(false);
+  const [showAddWordForm, setShowAddWordForm] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [editingNotes, setEditingNotes] = useState<{ [key: string]: string }>({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -207,12 +209,16 @@ export default function WordBank() {
           language = 'ja-JP';
         } else if (profile?.target_language === 'zh') {
           language = 'zh-CN';
+        } else if (profile?.target_language === 'ko') {
+          language = 'ko-KR';
         } else {
           // Fallback: detect language from characters if no profile setting
           const hasHiragana = /[\u3040-\u309F]/.test(word);
           const hasKatakana = /[\u30A0-\u30FF]/.test(word);
+          const hasHangul = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(word);
           const isJapanese = hasHiragana || hasKatakana;
-          language = isJapanese ? 'ja-JP' : 'zh-CN';
+          const isKorean = hasHangul;
+          language = isJapanese ? 'ja-JP' : isKorean ? 'ko-KR' : 'zh-CN';
         }
 
         utterance.lang = language;
@@ -245,6 +251,16 @@ export default function WordBank() {
         }
       }, 100);
     }
+  };
+
+  const handleAddWordSuccess = async () => {
+    setShowAddWordForm(false);
+    // Refresh the word bank to show the new word
+    await fetchWords();
+  };
+
+  const handleAddWordCancel = () => {
+    setShowAddWordForm(false);
   };
 
   const filteredWords = words.filter((w) => {
@@ -326,10 +342,35 @@ export default function WordBank() {
   return (
     <Layout>
       <div className="mb-6 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex flex-wrap gap-4">
-            {/* Status Filter */}
-            <div className="flex gap-2">
+        {/* Add Word / Back to Word Bank Button */}
+        {!practiceMode && (
+          <div className="flex justify-end">
+            {showAddWordForm ? (
+              <Button onClick={handleAddWordCancel} variant="outline">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Word Bank
+              </Button>
+            ) : (
+              <Button onClick={() => setShowAddWordForm(true)} variant="default">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Word
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Show Add Word Form */}
+        {showAddWordForm && !practiceMode && (
+          <AddWordForm onSuccess={handleAddWordSuccess} onCancel={handleAddWordCancel} />
+        )}
+
+        {/* Word Bank Filters */}
+        {!showAddWordForm && !practiceMode && (
+          <>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex flex-wrap gap-4">
+                {/* Status Filter */}
+                <div className="flex gap-2">
               <Button
                 variant={filter === 'all' ? 'default' : 'outline'}
                 onClick={() => setFilter('all')}
@@ -373,6 +414,13 @@ export default function WordBank() {
                 size="sm"
               >
                 Chinese
+              </Button>
+              <Button
+                variant={languageFilter === 'ko' ? 'default' : 'outline'}
+                onClick={() => setLanguageFilter('ko')}
+                size="sm"
+              >
+                Korean
               </Button>
             </div>
           </div>
@@ -658,9 +706,11 @@ export default function WordBank() {
             </CardContent>
           </Card>
         )}
-      </div>
+          </>
+        )}
 
-      {loading ? (
+      {/* Word Bank List */}
+      {!showAddWordForm && !practiceMode && (loading ? (
         <p className="text-muted-foreground">Loading words...</p>
       ) : words.length === 0 ? (
         <Card>
@@ -695,7 +745,7 @@ export default function WordBank() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle className="text-2xl">{word.word}</CardTitle>
                         <span className="text-xs px-2 py-0.5 rounded bg-muted border border-border">
-                          {word.language === 'ja' ? 'JP' : 'ZH'}
+                          {word.language === 'ja' ? 'JP' : word.language === 'zh' ? 'ZH' : 'KO'}
                         </span>
                         <Button
                           variant="ghost"
@@ -879,7 +929,8 @@ export default function WordBank() {
             );
           })}
         </div>
-      )}
+      ))}
+      </div>
     </Layout>
   );
 }

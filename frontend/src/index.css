@@ -1,5 +1,44 @@
 @import "tailwindcss";
 
+@theme {
+  --animation-popup-appear: popup-appear 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --animation-slide-in-left: slide-in-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --animation-slide-in-right: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popupAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -116,5 +155,83 @@
     transition-property: background-color, color, border-color, box-shadow, fill, stroke, opacity;
     transition-duration: 0.5s;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Custom Scrollbar Styling */
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.2);
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.4);
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.2) transparent;
+  }
+
+  *:hover {
+    scrollbar-color: hsl(var(--primary) / 0.4) transparent;
+  }
+
+  /* Furigana (Ruby) Styling */
+  ruby {
+    ruby-position: over;
+    display: inline-flex;
+    flex-direction: column;
+    vertical-align: baseline;
+    align-items: center;
+  }
+
+  rt {
+    font-size: 0.75em;
+    line-height: 1.4;
+    text-align: center;
+    color: hsl(var(--muted-foreground));
+    user-select: none;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    transition: color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Theme-specific adjustments */
+  :root rt {
+    /* Light theme - slightly darker */
+    opacity: 0.85;
+  }
+
+  .dark rt {
+    /* Dark theme - slightly brighter */
+    opacity: 0.95;
+  }
+
+  .sepia rt {
+    /* Sepia theme - warmer tone */
+    opacity: 0.9;
+  }
+
+  .night rt {
+    /* Night theme - brighter for visibility */
+    opacity: 1;
+  }
+
+  /* Ensure ruby text doesn't interfere with line height */
+  ruby > rt {
+    display: block;
+    margin-bottom: 0.2em;
   }
 }

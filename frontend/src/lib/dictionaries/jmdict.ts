@@ -22,6 +22,13 @@ interface JMDictEntry {
   jlpt?: number;       // JLPT level (5=easiest, 1=hardest)
 }
 
+// Example sentence structure
+interface ExampleSentence {
+  japanese: string;
+  english: string;
+  source: string | null;
+}
+
 /**
  * Basic Japanese dictionary with common words
  * This is a starter set - extend with full JMDict data for production
@@ -453,6 +460,12 @@ let fullJMDictCache: Record<string, JMDictEntry> | null = null;
 let fullDictLoadingPromise: Promise<void> | null = null;
 
 /**
+ * Cache for example sentences (loaded lazily)
+ */
+let examplesCache: Record<string, ExampleSentence[]> | null = null;
+let examplesLoadingPromise: Promise<void> | null = null;
+
+/**
  * Loads the full JMDict dictionary from JSON file
  * This function loads the dictionary lazily in the background
  */
@@ -491,12 +504,55 @@ async function loadFullJMDict(): Promise<void> {
 }
 
 /**
+ * Loads the example sentences from JSON file
+ * This function loads the examples lazily in the background
+ */
+async function loadExamples(): Promise<void> {
+  if (examplesCache || examplesLoadingPromise) {
+    return examplesLoadingPromise || Promise.resolve();
+  }
+
+  examplesLoadingPromise = (async () => {
+    try {
+      console.log('Loading Japanese example sentences...');
+
+      const response = await fetch('/data/japanese-examples.json');
+
+      if (response.ok) {
+        const data = await response.json();
+        examplesCache = data;
+        if (examplesCache) {
+          console.log(`Examples loaded: ${Object.keys(examplesCache).length} words with examples`);
+        }
+      } else {
+        console.warn('Examples file not available');
+      }
+    } catch (error) {
+      console.warn('Error loading examples:', error);
+    }
+  })();
+
+  return examplesLoadingPromise;
+}
+
+/**
  * Gets a dictionary entry with O(1) lookup
+ * Merges data from both dictionaries - uses full dictionary for definitions,
+ * and basic dictionary for JLPT levels
  */
 function getDictEntry(word: string): JMDictEntry | null {
-  // Try full dictionary first (if loaded)
+  let entry: JMDictEntry | null = null;
+
+  // Try full dictionary first (has more complete definitions)
   if (fullJMDictCache && fullJMDictCache[word]) {
-    return fullJMDictCache[word];
+    entry = fullJMDictCache[word];
+
+    // Supplement with JLPT level from basic dictionary if available
+    if (basicJapaneseDict[word]?.jlpt && !entry.jlpt) {
+      entry = { ...entry, jlpt: basicJapaneseDict[word].jlpt };
+    }
+
+    return entry;
   }
 
   // Fall back to basic dictionary
@@ -569,6 +625,11 @@ export async function lookupJapanese(word: string): Promise<DictionaryResult | n
       loadFullJMDict(); // Fire and forget - will be available for next lookup
     }
 
+    // Trigger loading of examples if not already loaded/loading
+    if (!examplesCache && !examplesLoadingPromise) {
+      loadExamples(); // Fire and forget - will be available for next lookup
+    }
+
     // Try to get entry from available dictionaries
     let entry = getDictEntry(word);
 
@@ -599,6 +660,20 @@ export async function lookupJapanese(word: string): Promise<DictionaryResult | n
         grammarNotes = primarySense.info.join('; ');
       }
 
+      // Get examples if available
+      let examples: string[] | undefined;
+
+      // If examples are still loading, wait for them to finish
+      if (!examplesCache && examplesLoadingPromise) {
+        await examplesLoadingPromise;
+      }
+
+      // Get examples for this word
+      if (examplesCache && examplesCache[word]) {
+        const wordExamples: ExampleSentence[] = examplesCache[word];
+        examples = wordExamples.map(ex => `${ex.japanese}\n${ex.english}`);
+      }
+
       return {
         word: entry.kanji || entry.reading,
         reading: entry.reading,
@@ -606,6 +681,8 @@ export async function lookupJapanese(word: string): Promise<DictionaryResult | n
         definitions,
         grammarNotes,
         usageNotes: primarySense.pos?.includes('particle') ? grammarNotes : undefined,
+        jlptLevel: entry.jlpt,
+        examples,
       };
     }
 

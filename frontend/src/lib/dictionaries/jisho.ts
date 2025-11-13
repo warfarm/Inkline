@@ -171,6 +171,16 @@ export async function lookupJapanese(word: string): Promise<DictionaryResult | n
     // Extract usage notes
     const usageNotes = primarySense.info?.join('; ');
 
+    // Extract JLPT level (convert "jlpt-n5" to 5, "jlpt-n1" to 1, etc.)
+    let jlptLevel: number | undefined;
+    if (entry.jlpt && entry.jlpt.length > 0) {
+      const jlptTag = entry.jlpt[0]; // e.g., "jlpt-n5"
+      const match = jlptTag.match(/n(\d)/);
+      if (match) {
+        jlptLevel = parseInt(match[1]);
+      }
+    }
+
     return {
       word: japanese.word || japanese.reading,
       reading: japanese.reading,
@@ -180,6 +190,7 @@ export async function lookupJapanese(word: string): Promise<DictionaryResult | n
       formalityLevel,
       usageNotes,
       example: undefined,
+      jlptLevel,
     };
   } catch (error) {
     console.error('Error looking up Japanese word:', error);

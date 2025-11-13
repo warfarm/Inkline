@@ -90,6 +90,7 @@ export default function Settings() {
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [customInterest, setCustomInterest] = useState('');
+  const [showFurigana, setShowFurigana] = useState(true);
 
   // Track original values to detect changes
   const [originalValues, setOriginalValues] = useState({
@@ -100,6 +101,7 @@ export default function Settings() {
     popupMode: 'click' as 'hover' | 'click',
     panelPosition: 'right' as 'left' | 'right',
     theme: 'light' as 'light' | 'dark' | 'sepia' | 'night',
+    showFurigana: true,
   });
 
   const [isInitialized, setIsInitialized] = useState(false);
@@ -115,11 +117,13 @@ export default function Settings() {
         popupMode,
         panelPosition,
         theme,
+        showFurigana: profile.show_furigana ?? true,
       };
       setDisplayName(values.displayName);
       setSelectedLevel(values.level);
       setSelectedLanguage(values.language);
       setSelectedTopics(values.topics);
+      setShowFurigana(values.showFurigana);
       setOriginalValues(values);
       setIsInitialized(true);
     }
@@ -139,6 +143,7 @@ export default function Settings() {
     if (popupMode !== originalValues.popupMode) return true;
     if (panelPosition !== originalValues.panelPosition) return true;
     if (theme !== originalValues.theme) return true;
+    if (showFurigana !== originalValues.showFurigana) return true;
     if (customInterest.trim()) return true;
     if (selectedTopics.length !== originalValues.topics.length) return true;
     if (selectedTopics.some((t) => !originalValues.topics.includes(t))) return true;
@@ -155,6 +160,7 @@ export default function Settings() {
     setPopupMode(originalValues.popupMode);
     setPanelPosition(originalValues.panelPosition);
     setTheme(originalValues.theme);
+    setShowFurigana(originalValues.showFurigana);
   };
 
   const handleBack = () => {
@@ -180,6 +186,7 @@ export default function Settings() {
           current_level: selectedLevel,
           target_language: selectedLanguage,
           interests,
+          show_furigana: showFurigana,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
@@ -197,6 +204,7 @@ export default function Settings() {
         popupMode,
         panelPosition,
         theme,
+        showFurigana,
       });
       setCustomInterest('');
 
@@ -575,6 +583,73 @@ export default function Settings() {
                     }`}
                   >
                     {panelPosition === 'left' && (
+                      <div
+                        className="h-3 w-3 rounded-full bg-primary"
+                        style={{ backgroundColor: 'hsl(var(--primary))' }}
+                      />
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 mt-4">
+              <Label className="text-base font-semibold">Furigana Display (Japanese Only)</Label>
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFurigana(true)}
+                  className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
+                    showFurigana
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">Show Furigana (Default)</div>
+                    <div className="text-sm text-muted-foreground">
+                      Display reading annotations above kanji in Japanese articles
+                    </div>
+                  </div>
+                  <div
+                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                      showFurigana
+                        ? 'border-primary'
+                        : 'border-muted-foreground'
+                    }`}
+                  >
+                    {showFurigana && (
+                      <div
+                        className="h-3 w-3 rounded-full bg-primary"
+                        style={{ backgroundColor: 'hsl(var(--primary))' }}
+                      />
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowFurigana(false)}
+                  className={`flex items-center rounded-lg border-2 p-4 text-left transition-colors cursor-pointer ${
+                    !showFurigana
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">Hide Furigana</div>
+                    <div className="text-sm text-muted-foreground">
+                      Show only kanji without reading annotations
+                    </div>
+                  </div>
+                  <div
+                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                      !showFurigana
+                        ? 'border-primary'
+                        : 'border-muted-foreground'
+                    }`}
+                  >
+                    {!showFurigana && (
                       <div
                         className="h-3 w-3 rounded-full bg-primary"
                         style={{ backgroundColor: 'hsl(var(--primary))' }}

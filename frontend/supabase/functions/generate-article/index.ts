@@ -3,6 +3,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+// @ts-ignore - TinySegmenter doesn't have TypeScript definitions
+import TinySegmenter from 'https://esm.sh/tiny-segmenter@0.2.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +31,148 @@ const HSK_JLPT_LEVELS = {
   intermediate: { zh: 'HSK 3-4', ja: 'JLPT N3-N2' },
   advanced: { zh: 'HSK 5-6', ja: 'JLPT N1' },
 };
+
+// Helper function to check if a character is kanji
+function isKanji(char: string): boolean {
+  const code = char.charCodeAt(0);
+  return (
+    (code >= 0x4e00 && code <= 0x9faf) || // CJK Unified Ideographs
+    (code >= 0x3400 && code <= 0x4dbf) || // CJK Extension A
+    (code >= 0xf900 && code <= 0xfaff)    // CJK Compatibility Ideographs
+  );
+}
+
+// Helper function to check if text contains kanji
+function hasKanji(text: string): boolean {
+  return Array.from(text).some(char => isKanji(char));
+}
+
+// Segment Japanese text using TinySegmenter
+function segmentJapanese(text: string): Array<{ text: string; start: number; end: number }> {
+  const segmenter = new TinySegmenter();
+  const segments = segmenter.segment(text);
+  const words: Array<{ text: string; start: number; end: number }> = [];
+  let currentPosition = 0;
+
+  for (const segment of segments) {
+    const start = currentPosition;
+    const end = currentPosition + segment.length;
+    words.push({ text: segment, start, end });
+    currentPosition = end;
+  }
+
+  return words;
+}
+
+// Simple Chinese segmentation (character-based for now)
+function segmentChinese(text: string): Array<{ text: string; start: number; end: number }> {
+  const words: Array<{ text: string; start: number; end: number }> = [];
+  let currentPosition = 0;
+
+  // Group consecutive Chinese characters together
+  let currentWord = '';
+  let wordStart = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const code = char.charCodeAt(0);
+    const isChinese = (code >= 0x4e00 && code <= 0x9fff);
+
+    if (isChinese) {
+      if (currentWord === '') {
+        wordStart = currentPosition;
+      }
+      currentWord += char;
+    } else {
+      if (currentWord) {
+        words.push({ text: currentWord, start: wordStart, end: currentPosition });
+        currentWord = '';
+      }
+      if (char.trim()) {
+        words.push({ text: char, start: currentPosition, end: currentPosition + 1 });
+      }
+    }
+    currentPosition++;
+  }
+
+  if (currentWord) {
+    words.push({ text: currentWord, start: wordStart, end: currentPosition });
+  }
+
+  return words;
+}
+
+// Fetch reading from Jisho API for Japanese words
+async function fetchJapaneseReading(word: string): Promise<string | null> {
+  try {
+    // Only fetch if word contains kanji
+    if (!hasKanji(word)) {
+      return null;
+    }
+
+    const response = await fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`);
+    if (!response.ok) return null;
+
+    const data = await response.json();
+
+    if (data.data && data.data.length > 0) {
+      const firstResult = data.data[0];
+      // Get the reading from japanese array
+      if (firstResult.japanese && firstResult.japanese.length > 0) {
+        return firstResult.japanese[0].reading || null;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching reading for ${word}:`, error);
+    return null;
+  }
+}
+
+// Segment text and add readings
+async function segmentWithReadings(
+  content: string,
+  language: 'zh' | 'ja'
+): Promise<{ words: Array<{ text: string; start: number; end: number; reading?: string }> }> {
+  console.log('[SEGMENT] Starting segmentation for', language);
+
+  // Segment based on language
+  const words = language === 'ja'
+    ? segmentJapanese(content)
+    : segmentChinese(content);
+
+  console.log('[SEGMENT] Segmented into', words.length, 'words');
+
+  // For Japanese, fetch readings for words with kanji
+  if (language === 'ja') {
+    const wordsWithKanji = words.filter(w => hasKanji(w.text));
+    console.log('[SEGMENT] Found', wordsWithKanji.length, 'words with kanji, fetching readings...');
+
+    // Fetch readings in batches to avoid rate limiting
+    const batchSize = 5;
+    for (let i = 0; i < wordsWithKanji.length; i += batchSize) {
+      const batch = wordsWithKanji.slice(i, i + batchSize);
+
+      await Promise.all(
+        batch.map(async (word) => {
+          const reading = await fetchJapaneseReading(word.text);
+          if (reading) {
+            word.reading = reading;
+          }
+        })
+      );
+
+      // Small delay between batches to be respectful to Jisho API
+      if (i + batchSize < wordsWithKanji.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+
+    console.log('[SEGMENT] Fetched readings for', wordsWithKanji.filter(w => w.reading).length, 'words');
+  }
+
+  return { words };
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -197,7 +341,7 @@ Do not include any markdown formatting, code blocks, or additional text outside 
             }],
             generationConfig: {
               temperature: 0.8,
-              maxOutputTokens: 2048,
+              maxOutputTokens: 8192, // Increased from 2048 to accommodate article generation
             },
           }),
         }
@@ -206,7 +350,8 @@ Do not include any markdown formatting, code blocks, or additional text outside 
     };
 
     // Retry logic with exponential backoff and model fallback
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    // Using Flash-Lite models for higher free tier limits (1000 RPD vs 250 RPD for regular Flash)
+    const models = ['gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
     let geminiResponse: Response | null = null;
     let lastError: string = '';
 
@@ -262,10 +407,17 @@ Do not include any markdown formatting, code blocks, or additional text outside 
     }
 
     const geminiData = await geminiResponse.json();
+    console.log('[18] Full Gemini response:', JSON.stringify(geminiData, null, 2));
 
     // Extract generated content
     const generatedText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!generatedText) {
+      console.error('[19] Failed to extract text. Response structure:', {
+        hasCandidates: !!geminiData.candidates,
+        candidatesLength: geminiData.candidates?.length,
+        firstCandidate: geminiData.candidates?.[0],
+        fullResponse: geminiData
+      });
       throw new Error('No content generated from Gemini');
     }
 
@@ -283,12 +435,20 @@ Do not include any markdown formatting, code blocks, or additional text outside 
       throw new Error('Invalid JSON response from Gemini');
     }
 
-    // Return the generated article data
+    console.log('[20] Starting segmentation and reading fetch...');
+
+    // Segment the content and fetch readings
+    const segmentedContent = await segmentWithReadings(articleData.content, language);
+
+    console.log('[21] Segmentation complete, returning article data');
+
+    // Return the generated article data with segmented content
     // Note: Counter will be incremented by frontend after successful DB save
     return new Response(
       JSON.stringify({
         title: articleData.title,
         content: articleData.content,
+        segmentedContent, // Include segmented content with readings
         wordCount: articleData.wordCount,
         topic,
         language,

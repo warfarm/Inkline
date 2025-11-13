@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import type { DictionaryResult } from '@/types';
 import { useEffect, useRef, useState } from 'react';
@@ -69,55 +70,174 @@ export function PhrasePopup({
     }
   }, [position, result, loading]);
 
-  const handleSpeak = () => {
-    if ('speechSynthesis' in window && result) {
+  const handleSpeak = async () => {
+    // Use result.word if available (full phrase from API), otherwise use the selected phrase text
+    const textToSpeak = result?.word || phrase;
+    console.log('Speaking phrase:', textToSpeak);
+
+    // Determine language
+    let language = 'zh-CN'; // Default to Chinese
+    if (profile?.target_language === 'ja') {
+      language = 'ja-JP';
+    } else if (profile?.target_language === 'zh') {
+      language = 'zh-CN';
+    } else if (profile?.target_language === 'ko') {
+      language = 'ko-KR';
+    } else {
+      // Fallback: detect language from characters
+      const hasHiragana = /[\u3040-\u309F]/.test(textToSpeak);
+      const hasKatakana = /[\u30A0-\u30FF]/.test(textToSpeak);
+      const hasHangul = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(textToSpeak);
+
+      if (hasHiragana || hasKatakana) {
+        language = 'ja-JP';
+      } else if (hasHangul) {
+        language = 'ko-KR';
+      } else {
+        language = 'zh-CN';
+      }
+    }
+
+    setIsSpeaking(true);
+
+    try {
+      // Try Web Speech API first
+      if ('speechSynthesis' in window) {
+        const success = await tryBrowserTTS(textToSpeak, language);
+        if (success) {
+          return; // Success!
+        }
+      }
+
+      // Fallback: Try Supabase Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (supabaseUrl) {
+        try {
+          console.log('Trying Supabase Edge Function for phrase...');
+
+          const edgeUrl = `${supabaseUrl}/functions/v1/tts?text=${encodeURIComponent(textToSpeak)}&lang=${language}`;
+
+          const response = await fetch(edgeUrl, {
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const audio = new Audio(blobUrl);
+            audio.onplay = () => console.log('Supabase TTS started (phrase):', textToSpeak);
+            audio.onended = () => {
+              console.log('Supabase TTS ended');
+              setIsSpeaking(false);
+              URL.revokeObjectURL(blobUrl);
+            };
+            audio.onerror = () => {
+              console.error('Audio playback error');
+              setIsSpeaking(false);
+              URL.revokeObjectURL(blobUrl);
+            };
+
+            await audio.play();
+            return; // Success!
+          } else {
+            console.warn('Supabase Edge Function returned:', response.status);
+          }
+        } catch (edgeError) {
+          console.warn('Supabase Edge Function failed:', edgeError);
+        }
+      }
+
+      // If all methods failed, throw error
+      throw new Error('All TTS methods failed');
+
+    } catch (error) {
+      console.error('TTS unavailable:', error);
+      setIsSpeaking(false);
+    }
+  };
+
+  const tryBrowserTTS = async (text: string, language: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (!('speechSynthesis' in window)) {
+        console.warn('Speech synthesis not supported');
+        resolve(false);
+        return;
+      }
+
       // Cancel any ongoing speech
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
 
-      // Add a small delay to ensure cancel completes
-      setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(result.word);
+      const speakWithVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        console.log('Available voices:', voices.length);
 
-        // Use user's target language preference, with fallback to character detection
-        let language = 'zh-CN'; // Default to Chinese
-        if (profile?.target_language === 'ja') {
-          language = 'ja-JP';
-        } else if (profile?.target_language === 'zh') {
-          language = 'zh-CN';
-        } else {
-          // Fallback: detect language from characters if no profile setting
-          const hasHiragana = /[\u3040-\u309F]/.test(result.word);
-          const hasKatakana = /[\u30A0-\u30FF]/.test(result.word);
-          const isJapanese = hasHiragana || hasKatakana;
-          language = isJapanese ? 'ja-JP' : 'zh-CN';
+        // Find appropriate voice for the language
+        const langCode = language.split('-')[0]; // 'ja', 'zh', 'ko'
+        const targetVoice = voices.find(voice => voice.lang.startsWith(langCode));
+
+        // If no native voice is available, return false to try other TTS methods
+        if (!targetVoice) {
+          console.log(`No ${langCode} voice found. Available languages:`,
+            [...new Set(voices.map(v => v.lang))].join(', '));
+          console.log('Will try alternative TTS method...');
+          setIsSpeaking(false);
+          resolve(false);
+          return;
         }
 
+        console.log('Using native voice:', targetVoice.name);
+
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = language;
         utterance.rate = 0.8;
+        utterance.voice = targetVoice;
 
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = (event) => {
-          console.error('Speech synthesis error:', event);
+        utterance.onstart = () => {
+          console.log('Browser TTS started (phrase):', text);
+          setIsSpeaking(true);
+        };
+
+        utterance.onend = () => {
+          console.log('Browser TTS ended');
           setIsSpeaking(false);
-          // Only show error if it's not an "interrupted" error
-          if (event.error !== 'interrupted') {
-            console.warn('TTS error (non-critical):', event.error);
+          resolve(true);
+        };
+
+        utterance.onerror = (event) => {
+          console.error('Browser TTS error:', event);
+          setIsSpeaking(false);
+          resolve(false);
+        };
+
+        console.log('Speaking with browser TTS...');
+        window.speechSynthesis.speak(utterance);
+      };
+
+      // Wait for voices to be loaded
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        console.log('Waiting for voices to load...');
+        let hasSpoken = false;
+
+        const speakOnce = () => {
+          if (!hasSpoken) {
+            hasSpoken = true;
+            speakWithVoices();
           }
         };
 
-        // Ensure voices are loaded before speaking
-        if (window.speechSynthesis.getVoices().length === 0) {
-          window.speechSynthesis.addEventListener('voiceschanged', () => {
-            window.speechSynthesis.speak(utterance);
-          }, { once: true });
-        } else {
-          window.speechSynthesis.speak(utterance);
-        }
-      }, 100);
-    }
+        window.speechSynthesis.addEventListener('voiceschanged', speakOnce, { once: true });
+        // Also try after a delay in case event doesn't fire
+        setTimeout(speakOnce, 500);
+      } else {
+        speakWithVoices();
+      }
+    });
   };
 
   return createPortal(
@@ -131,22 +251,24 @@ export function PhrasePopup({
 
       <div
         ref={popupRef}
-        className="fixed max-w-md max-sm:left-0 max-sm:right-0 max-sm:bottom-0 max-sm:max-w-full rounded-lg max-sm:rounded-t-lg max-sm:rounded-b-none border-2 border-primary/20 bg-card p-4 shadow-2xl"
+        className="fixed max-sm:left-0 max-sm:right-0 max-sm:bottom-0"
         style={{
           top: adjustedPosition.y,
           left: adjustedPosition.x,
           zIndex: 10001,
           isolation: 'isolate',
-          backgroundColor: 'hsl(var(--card))'
+          animation: 'popupAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {loading ? (
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Looking up phrase...</p>
-          </div>
-        ) : result ? (
-          <div className="space-y-3">
+        <Card className="w-96 max-w-[90vw] max-sm:w-full max-sm:rounded-t-lg max-sm:rounded-b-none shadow-2xl border-2 border-primary/20 backdrop-blur-md bg-card/95" style={{ backgroundColor: 'hsl(var(--card) / 0.95)', maxHeight: '70vh', display: 'grid', gridTemplateRows: 'minmax(0, 1fr) auto' }}>
+          {loading ? (
+            <div className="p-4 text-center">
+              <p className="text-sm text-muted-foreground">Looking up phrase...</p>
+            </div>
+          ) : result ? (
+            <>
+              <div className={`p-4 ${showMore ? 'pb-8' : 'pb-4'} space-y-3 overflow-y-auto`} style={{ minHeight: 0, WebkitOverflowScrolling: 'touch' }}>
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <div className="text-2xl font-bold">{result.word}</div>
@@ -227,8 +349,11 @@ export function PhrasePopup({
                 </div>
               </div>
             )}
+          </div>
 
-            <div className="flex gap-2 pt-2 border-t">
+          {/* Action Buttons - Always visible at bottom */}
+          <div className="px-4 pb-4 pt-3 border-t bg-card/95 backdrop-blur-md" style={{ backgroundColor: 'hsl(var(--card) / 0.95)' }}>
+            <div className="flex gap-2">
               <Button
                 onClick={() => {
                   console.log('Saving with note:', userNote);
@@ -244,8 +369,9 @@ export function PhrasePopup({
               </Button>
             </div>
           </div>
+        </>
         ) : (
-          <div className="space-y-3">
+          <div className="p-4 space-y-3">
             <div className="text-lg font-semibold">{phrase}</div>
             <div className="text-sm text-muted-foreground">
               No definition found for this phrase. Try selecting individual words.
@@ -255,6 +381,7 @@ export function PhrasePopup({
             </Button>
           </div>
         )}
+        </Card>
       </div>
     </>,
     document.body
