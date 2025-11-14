@@ -66,9 +66,22 @@ export function Navigation() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" onClick={() => navigate('/word-bank')}>
-                Word Bank
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-1">
+                    Words
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => navigate('/word-bank')}>
+                    Word Bank
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/sets')}>
+                    Sets
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="ghost" onClick={() => navigate('/progress')}>
                 Progress
               </Button>

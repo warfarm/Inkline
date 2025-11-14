@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import type { DictionaryResult } from '@/types';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Volume2, Pause, Check, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 
@@ -36,7 +36,9 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
   const [showAbbreviations, setShowAbbreviations] = useState(false);
   const [abbreviationsOnLeft, setAbbreviationsOnLeft] = useState(false);
 
-  useEffect(() => {
+  // Recalculate popup position when it first appears OR when content size changes (showMore toggle)
+  // Use useLayoutEffect to ensure DOM has updated before measuring
+  useLayoutEffect(() => {
     if (popupRef.current) {
       const popup = popupRef.current;
       const rect = popup.getBoundingClientRect();
@@ -67,7 +69,7 @@ export function WordPopup({ result, position, onSave, onClose, saving, onMouseEn
 
       setAdjustedPosition({ x, y });
     }
-  }, [position]);
+  }, [position, showMore]); // Recalculate when showMore changes
 
   // Check if abbreviations panel fits on the right, otherwise show on left
   useEffect(() => {

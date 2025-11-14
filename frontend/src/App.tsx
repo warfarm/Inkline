@@ -9,6 +9,7 @@ import Articles from '@/pages/Articles';
 import ArticleView from '@/pages/ArticleView';
 import Reading from '@/pages/Reading';
 import WordBank from '@/pages/WordBank';
+import WordSets from '@/pages/WordSets';
 import Progress from '@/pages/Progress';
 import MyClasses from '@/pages/MyClasses';
 import JoinClass from '@/pages/JoinClass';
@@ -116,6 +117,15 @@ function App() {
         element={
           <ProtectedRoute requiredRole="student">
             <WordBank />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/sets"
+        element={
+          <ProtectedRoute requiredRole="student">
+            <WordSets />
           </ProtectedRoute>
         }
       />

@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { FlashcardPractice } from '@/components/wordbank/FlashcardPractice';
 import { AddWordForm } from '@/components/wordbank/AddWordForm';
+import { AddToSetDialog } from '@/components/wordsets/AddToSetDialog';
+import { useWordSets } from '@/hooks/useWordSets';
 import { toast } from 'sonner';
-import { Volume2, Pause, Check, Circle, ChevronDown, ChevronUp, Download, Languages, RotateCcw, Plus, ArrowLeft } from 'lucide-react';
+import { Volume2, Pause, Check, Circle, ChevronDown, ChevronUp, Download, Languages, RotateCcw, Plus, ArrowLeft, FolderPlus } from 'lucide-react';
 import type { WordBankEntry } from '@/types';
 
 export default function WordBank() {
@@ -24,6 +26,12 @@ export default function WordBank() {
   const [editingNotes, setEditingNotes] = useState<{ [key: string]: string }>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [speakingWords, setSpeakingWords] = useState<Set<string>>(new Set());
+
+  // Word Sets integration
+  const { sets, createSet } = useWordSets(user?.id);
+  const [showAddToSetDialog, setShowAddToSetDialog] = useState(false);
+  const [selectedWordForSets, setSelectedWordForSets] = useState<WordBankEntry | null>(null);
+  const [wordSetMemberships, setWordSetMemberships] = useState<{ [wordId: string]: string[] }>({});
 
   // Advanced filter states
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -261,6 +269,111 @@ export default function WordBank() {
 
   const handleAddWordCancel = () => {
     setShowAddWordForm(false);
+  };
+
+  // Fetch which sets each word belongs to
+  useEffect(() => {
+    const fetchWordSetMemberships = async () => {
+      if (!user || words.length === 0) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('word_set_items')
+          .select('word_bank_id, set_id')
+          .in('word_bank_id', words.map(w => w.id));
+
+        if (error) throw error;
+
+        const memberships: { [wordId: string]: string[] } = {};
+        data?.forEach(item => {
+          if (!memberships[item.word_bank_id]) {
+            memberships[item.word_bank_id] = [];
+          }
+          memberships[item.word_bank_id].push(item.set_id);
+        });
+
+        setWordSetMemberships(memberships);
+      } catch (err) {
+        console.error('Error fetching word set memberships:', err);
+      }
+    };
+
+    fetchWordSetMemberships();
+  }, [user, words]);
+
+  const handleOpenAddToSet = (word: WordBankEntry) => {
+    setSelectedWordForSets(word);
+    setShowAddToSetDialog(true);
+  };
+
+  const handleAddToSets = async (setIds: string[]) => {
+    if (!selectedWordForSets) return;
+
+    const currentSetIds = wordSetMemberships[selectedWordForSets.id] || [];
+    const toAdd = setIds.filter(id => !currentSetIds.includes(id));
+    const toRemove = currentSetIds.filter(id => !setIds.includes(id));
+
+    try {
+      // Add to new sets
+      if (toAdd.length > 0) {
+        const { error: addError } = await supabase
+          .from('word_set_items')
+          .insert(
+            toAdd.map(setId => ({
+              set_id: setId,
+              word_bank_id: selectedWordForSets.id,
+            }))
+          );
+
+        if (addError) throw addError;
+      }
+
+      // Remove from sets
+      if (toRemove.length > 0) {
+        const { error: removeError } = await supabase
+          .from('word_set_items')
+          .delete()
+          .in('set_id', toRemove)
+          .eq('word_bank_id', selectedWordForSets.id);
+
+        if (removeError) throw removeError;
+      }
+
+      // Update local state
+      setWordSetMemberships(prev => ({
+        ...prev,
+        [selectedWordForSets.id]: setIds,
+      }));
+
+      toast.success(`Updated sets for "${selectedWordForSets.word}"`);
+    } catch (err) {
+      console.error('Error updating word sets:', err);
+      throw err;
+    }
+  };
+
+  const handleCreateSetFromDialog = async (setName: string) => {
+    if (!selectedWordForSets) return;
+
+    try {
+      const newSet = await createSet({
+        name: setName,
+        language: selectedWordForSets.language,
+        color: '#3B82F6',
+        practice_settings: {
+          cardsPerSession: 'all',
+          shuffle: false,
+          showReading: 'always',
+        },
+      });
+
+      if (newSet) {
+        // Add the word to the newly created set
+        await handleAddToSets([...(wordSetMemberships[selectedWordForSets.id] || []), newSet.id]);
+      }
+    } catch (err) {
+      console.error('Error creating set:', err);
+    }
   };
 
   const filteredWords = words.filter((w) => {
@@ -923,7 +1036,28 @@ export default function WordBank() {
                   {/* Metadata */}
                   <div className="text-xs text-muted-foreground pt-2 border-t">
                     Added {new Date(word.first_seen_at).toLocaleDateString()}
+                    {wordSetMemberships[word.id] && wordSetMemberships[word.id].length > 0 && (
+                      <span className="ml-2">
+                        • In {wordSetMemberships[word.id].length} {wordSetMemberships[word.id].length === 1 ? 'set' : 'sets'}
+                      </span>
+                    )}
                   </div>
+
+                  {/* Add to Set Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenAddToSet(word);
+                    }}
+                  >
+                    <FolderPlus className="mr-2 h-3 w-3" />
+                    {wordSetMemberships[word.id] && wordSetMemberships[word.id].length > 0
+                      ? 'Manage Sets'
+                      : 'Add to Set'}
+                  </Button>
                 </CardContent>
               </Card>
             );
@@ -931,6 +1065,23 @@ export default function WordBank() {
         </div>
       ))}
       </div>
+
+      {/* Add to Set Dialog */}
+      {selectedWordForSets && (
+        <AddToSetDialog
+          open={showAddToSetDialog}
+          onClose={() => {
+            setShowAddToSetDialog(false);
+            setSelectedWordForSets(null);
+          }}
+          word={selectedWordForSets.word}
+          language={selectedWordForSets.language}
+          sets={sets}
+          currentSetIds={wordSetMemberships[selectedWordForSets.id] || []}
+          onAddToSets={handleAddToSets}
+          onCreateNewSet={handleCreateSetFromDialog}
+        />
+      )}
     </Layout>
   );
 }

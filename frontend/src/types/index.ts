@@ -4,6 +4,8 @@ export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
 export type WordStatus = 'learning' | 'mastered';
 export type ArticleLength = 'short' | 'medium' | 'long';
 export type FormalityLevel = 'casual' | 'polite' | 'formal';
+export type ShareType = 'public' | 'link' | 'user' | 'class';
+export type SharePermission = 'view' | 'copy' | 'edit';
 
 export interface Profile {
   id: string;
@@ -173,4 +175,119 @@ export interface GeneratedArticle {
   is_test_article: boolean;
   article_length: ArticleLength;
   created_at: string;
+}
+
+// ============================================
+// WORD SETS: Set organization and management
+// ============================================
+
+export interface WordSetPracticeSettings {
+  cardsPerSession: number | 'all';
+  shuffle: boolean;
+  showReading: 'always' | 'onReveal' | 'never';
+}
+
+export interface WordSetFolder {
+  id: string;
+  user_id: string;
+  name: string;
+  parent_folder_id?: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WordSet {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  language: Language;
+
+  // Organization
+  folder_id?: string;
+  color: string;
+  is_favorite: boolean;
+  position: number;
+
+  // Media
+  cover_image_url?: string;
+
+  // Practice settings
+  practice_settings: WordSetPracticeSettings;
+
+  // Metadata
+  word_count: number;
+  total_practice_sessions: number;
+  last_practiced_at?: string;
+  created_at: string;
+  updated_at: string;
+
+  // Sharing
+  is_public: boolean;
+  share_token?: string;
+  original_set_id?: string;
+  times_copied: number;
+}
+
+export interface WordSetItem {
+  id: string;
+  set_id: string;
+  word_bank_id: string;
+  position: number;
+  added_at: string;
+  times_reviewed_in_set: number;
+  last_reviewed_in_set?: string;
+
+  // Populated word data (when joining with word_bank)
+  word?: WordBankEntry;
+}
+
+export interface WordSetTag {
+  id: string;
+  set_id: string;
+  tag_name: string;
+  created_at: string;
+}
+
+export interface WordSetPracticeHistory {
+  id: string;
+  set_id: string;
+  user_id: string;
+  started_at: string;
+  completed_at?: string;
+  cards_reviewed: number;
+  cards_correct: number;
+  cards_incorrect: number;
+  time_spent_seconds: number;
+  session_settings?: WordSetPracticeSettings;
+}
+
+export interface WordSetShare {
+  id: string;
+  set_id: string;
+  shared_by_user_id: string;
+  share_type: ShareType;
+  shared_with_user_id?: string;
+  shared_with_class_id?: string;
+  permissions: SharePermission;
+  created_at: string;
+  expires_at?: string;
+  view_count: number;
+  copy_count: number;
+}
+
+// Extended WordSet with populated relationships
+export interface WordSetWithDetails extends WordSet {
+  folder?: WordSetFolder;
+  tags?: WordSetTag[];
+  items?: WordSetItem[];
+  share_info?: WordSetShare;
+}
+
+// For public library browsing
+export interface PublicWordSet extends WordSet {
+  owner_name: string; // From profiles.display_name
+  tags: string[];
+  preview_words: string[]; // First few words for preview
 }

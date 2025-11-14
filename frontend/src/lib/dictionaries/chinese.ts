@@ -1,6 +1,17 @@
 import type { DictionaryResult } from '@/types';
 import { convertPinyin } from './pinyin-converter';
 
+// Example sentence structure
+interface ExampleSentence {
+  chinese: string;
+  pinyin: string;
+  english: string;
+}
+
+// Example sentences cache
+let examplesCache: Record<string, ExampleSentence[]> | null = null;
+let examplesLoadingPromise: Promise<void> | null = null;
+
 // Basic Chinese dictionary using CC-CEDICT-like data
 // This is a simplified version - in production, you'd load full CC-CEDICT data
 export const basicChineseDict: Record<string, { pinyin: string; definition: string }> = {
@@ -1088,6 +1099,46 @@ export async function loadFullChineseDict(): Promise<void> {
 }
 
 /**
+ * Load Chinese example sentences from Tatoeba
+ * This function loads the examples lazily in the background
+ */
+export async function loadChineseExamples(): Promise<void> {
+  // If already loaded, return immediately
+  if (examplesCache) {
+    return;
+  }
+
+  // If already loading, wait for that promise
+  if (examplesLoadingPromise) {
+    return examplesLoadingPromise;
+  }
+
+  // Start loading
+  examplesLoadingPromise = (async () => {
+    try {
+      console.log('[Chinese Examples] Loading example sentences from Tatoeba...');
+      const response = await fetch('/data/chinese-examples.json');
+
+      if (!response.ok) {
+        throw new Error(`Failed to load examples: ${response.status}`);
+      }
+
+      const data = await response.json();
+      examplesCache = data;
+      if (examplesCache) {
+        console.log(`[Chinese Examples] Loaded examples for ${Object.keys(examplesCache).length} words`);
+      }
+    } catch (error) {
+      console.warn('[Chinese Examples] Failed to load examples (will work without them):', error);
+      // Don't cache the error - allow retry on next lookup
+      examplesLoadingPromise = null;
+    }
+  })();
+
+  return examplesLoadingPromise;
+}
+
+/**
  * Clean up CC-CEDICT definition for display
  * Removes cross-references, technical annotations, and simplifies complex definitions
  */
@@ -1187,6 +1238,11 @@ export async function lookupChinese(word: string): Promise<DictionaryResult | nu
       loadFullChineseDict(); // Fire and forget - will be available for next lookup
     }
 
+    // Trigger loading of examples if not already loaded/loading
+    if (!examplesCache && !examplesLoadingPromise) {
+      loadChineseExamples(); // Fire and forget - will be available for next lookup
+    }
+
     // Try to get entry from available dictionaries
     let entry = getDictEntry(word);
 
@@ -1221,12 +1277,27 @@ export async function lookupChinese(word: string): Promise<DictionaryResult | nu
       // Parse definitions into array format for better display
       const definitionsArray = parseDefinitionsArray(entry.definition);
 
+      // Get examples if available
+      let examples: string[] | undefined;
+
+      // If examples are still loading, wait for them to finish
+      if (!examplesCache && examplesLoadingPromise) {
+        await examplesLoadingPromise;
+      }
+
+      // Get examples for this word
+      if (examplesCache && examplesCache[word]) {
+        const wordExamples: ExampleSentence[] = examplesCache[word];
+        examples = wordExamples.map(ex => `${ex.chinese}\n${ex.english}`);
+      }
+
       return {
         word,
         reading: convertPinyin(entry.pinyin),
         definition: cleanDefinition(entry.definition, false), // Keep for backwards compatibility
         definitions: definitionsArray, // Structured array for WordPopup
         example: undefined,
+        examples,
         componentCharacters,
       };
     }
