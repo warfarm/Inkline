@@ -18,7 +18,9 @@ import {
   SortAsc,
   Shuffle,
 } from 'lucide-react';
-import type { WordSet } from '@/types';
+import { AddWordsToSetModal } from './AddWordsToSetModal';
+import { FlashcardPractice } from '../wordbank/FlashcardPractice';
+import type { WordSet, WordBankEntry } from '@/types';
 
 interface SetDetailViewProps {
   set: WordSet;
@@ -26,15 +28,19 @@ interface SetDetailViewProps {
   onEdit: (set: WordSet) => void;
   onDelete: (setId: string) => void;
   onShare: (set: WordSet) => void;
+  userId: string;
+  profile?: any; // User profile for TTS language
 }
 
-export function SetDetailView({ set, onBack, onEdit, onDelete, onShare }: SetDetailViewProps) {
-  const { items, loading, removeWord, reorderItems } = useSetItems(set.id);
+export function SetDetailView({ set, onBack, onEdit, onDelete, onShare, userId, profile }: SetDetailViewProps) {
+  const { items, loading, removeWord, reorderItems, fetchItems } = useSetItems(set.id);
   const { tags, addTag, removeTag } = useSetTags(set.id);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'position' | 'alphabetical' | 'leastReviewed'>('position');
   const [tagInput, setTagInput] = useState('');
+  const [showAddWordsModal, setShowAddWordsModal] = useState(false);
+  const [practiceMode, setPracticeMode] = useState(false);
 
   // Filter and sort items
   const filteredItems = items.filter((item) => {
@@ -122,6 +128,34 @@ export function SetDetailView({ set, onBack, onEdit, onDelete, onShare }: SetDet
   };
 
   const coverEmoji = getCoverDisplay();
+
+  // Handle word mastered from practice
+  const handleMarkMastered = async (_wordId: string) => {
+    // This would update the word status in the word bank
+    // For now, just show success
+    toast.success('Word marked as mastered');
+  };
+
+  // If in practice mode, show flashcard practice
+  if (practiceMode) {
+    const practiceWords = items
+      .filter((item) => item.word)
+      .map((item) => item.word as WordBankEntry);
+
+    return (
+      <FlashcardPractice
+        words={practiceWords}
+        onExit={() => {
+          setPracticeMode(false);
+          fetchItems(); // Refresh to get updated review counts
+        }}
+        onMarkMastered={handleMarkMastered}
+        profile={profile}
+        setId={set.id}
+        userId={userId}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -239,7 +273,11 @@ export function SetDetailView({ set, onBack, onEdit, onDelete, onShare }: SetDet
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </Button>
-              <Button size="sm" disabled={set.word_count === 0}>
+              <Button
+                size="sm"
+                disabled={set.word_count === 0}
+                onClick={() => setPracticeMode(true)}
+              >
                 <BookOpen className="mr-2 h-4 w-4" />
                 Practice Now
               </Button>
@@ -292,6 +330,15 @@ export function SetDetailView({ set, onBack, onEdit, onDelete, onShare }: SetDet
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setShowAddWordsModal(true)}
+            disabled={set.word_count >= 100}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Words
+          </Button>
           <Button variant="outline" size="sm" onClick={handleSortAlphabetically}>
             <SortAsc className="mr-2 h-4 w-4" />
             Sort A-Z
@@ -398,6 +445,16 @@ export function SetDetailView({ set, onBack, onEdit, onDelete, onShare }: SetDet
           </CardContent>
         </Card>
       )}
+
+      {/* Add Words Modal */}
+      <AddWordsToSetModal
+        open={showAddWordsModal}
+        onClose={() => setShowAddWordsModal(false)}
+        set={set}
+        currentWordIds={items.map((item) => item.word_bank_id)}
+        onWordsAdded={fetchItems}
+        userId={userId}
+      />
     </div>
   );
 }

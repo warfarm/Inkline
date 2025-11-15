@@ -229,8 +229,8 @@ DECLARE
 BEGIN
   WHILE exists LOOP
     token := encode(gen_random_bytes(12), 'base64');
-    token := replace(replace(replace(token, '/', ''), '+', ''), '=', '');
-    EXISTS(SELECT 1 FROM word_sets WHERE share_token = token) INTO exists;
+    token := replace(replace(replace(token, '/', ''), '=', ''), '+', '');
+    SELECT EXISTS(SELECT 1 FROM word_sets WHERE share_token = token) INTO exists;
   END LOOP;
   RETURN token;
 END;

@@ -29,6 +29,7 @@ export default function WordSets() {
   const {
     sets,
     loading,
+    fetchSets,
     createSet,
     updateSet,
     deleteSet,
@@ -57,6 +58,16 @@ export default function WordSets() {
       setShowRecommendations(showRecs === 'true');
     }
   }, []);
+
+  // Update selectedSet when sets data changes to keep it in sync
+  useEffect(() => {
+    if (selectedSet) {
+      const updatedSet = sets.find((s) => s.id === selectedSet.id);
+      if (updatedSet) {
+        setSelectedSet(updatedSet);
+      }
+    }
+  }, [sets]);
 
   // Filter sets
   const filteredSets = sets.filter((set) => {
@@ -118,12 +129,15 @@ export default function WordSets() {
   };
 
   // If viewing a set detail
-  if (selectedSet) {
+  if (selectedSet && user) {
     return (
       <Layout>
         <SetDetailView
           set={selectedSet}
-          onBack={() => setSelectedSet(null)}
+          onBack={() => {
+            fetchSets(); // Refresh sets to get updated word counts
+            setSelectedSet(null);
+          }}
           onEdit={(set) => {
             setEditingSet(set);
             setShowCreateModal(true);
@@ -133,6 +147,8 @@ export default function WordSets() {
             setSelectedSet(null);
           }}
           onShare={handleShareSet}
+          userId={user.id}
+          profile={profile}
         />
       </Layout>
     );
